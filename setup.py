@@ -13,6 +13,7 @@
 # and limitations under the License.
 #--------------------------------------------------------------------------------------------------
 
+import os
 from distutils.core import *
 from subprocess import *
 
@@ -23,6 +24,13 @@ package_author = 'Mikio Hirabayashi'
 package_author_email = 'mikio@dbmx.net'
 package_url = 'http://dbmx.net/tkrzw/'
 module_name = 'tkrzw'
+
+ldpath = os.environ.get('LD_LIBRARY_PATH')
+ldpaths = []
+if ldpath:
+    ldpaths.append(ldpath)
+ldpaths.append('/usr/local/lib')
+os.environ['LD_LIBRARY_PATH'] = ':'.join(ldpaths)
 
 def getcmdout(cmdargs):
     try:

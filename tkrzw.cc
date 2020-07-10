@@ -56,7 +56,7 @@ struct PyUtility {
 };
 
 // Python object of Status.
-struct PyStatus {
+struct PyTkStatus {
   PyObject_HEAD
   tkrzw::Status* status;
 };
@@ -98,9 +98,9 @@ static PyObject* CreatePyBytes(std::string_view str) {
 }
 
 // Creates a status object of Python.
-static PyObject* CreatePyStatus(const tkrzw::Status& status) {
+static PyObject* CreatePyTkStatus(const tkrzw::Status& status) {
   PyTypeObject* pytype = (PyTypeObject*)cls_status;
-  PyStatus* obj = (PyStatus*)pytype->tp_alloc(pytype, 0);
+  PyTkStatus* obj = (PyTkStatus*)pytype->tp_alloc(pytype, 0);
   if (!obj) return nullptr;
   obj->status = new tkrzw::Status(status);
   return (PyObject*)obj;
@@ -113,7 +113,7 @@ static void ThrowInvalidArguments(std::string_view message) {
 
 // Throws a status error.
 static void ThrowStatusException(const tkrzw::Status& status) {
-  PyObject* pystatus = CreatePyStatus(status);
+  PyObject* pystatus = CreatePyTkStatus(status);
   PyErr_SetObject(cls_expt, pystatus);
   Py_DECREF(pystatus);
 }
@@ -379,20 +379,20 @@ static bool DefineUtility() {
 
 // Implementation of Status.new.
 static PyObject* status_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
-  PyStatus* self = (PyStatus*)pytype->tp_alloc(pytype, 0);
+  PyTkStatus* self = (PyTkStatus*)pytype->tp_alloc(pytype, 0);
   if (!self) return nullptr;
   self->status = new tkrzw::Status();
   return (PyObject*)self;
 }
 
 // Implementation of Status#dealloc.
-static void status_dealloc(PyStatus* self) {
+static void status_dealloc(PyTkStatus* self) {
   delete self->status;
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 // Implementation of Status#__init__.
-static int status_init(PyStatus* self, PyObject* pyargs, PyObject* pykwds) {
+static int status_init(PyTkStatus* self, PyObject* pyargs, PyObject* pykwds) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc > 2) {
     ThrowInvalidArguments("too many arguments");
@@ -414,22 +414,22 @@ static int status_init(PyStatus* self, PyObject* pyargs, PyObject* pykwds) {
 }
 
 // Implementation of Status#__repr__.
-static PyObject* status_repr(PyStatus* self) {
+static PyObject* status_repr(PyTkStatus* self) {
   return CreatePyString(tkrzw::StrCat("<tkrzw.Status: ", *self->status, ">"));
 }
 
 // Implementation of Status#__str__.
-static PyObject* status_str(PyStatus* self) {
+static PyObject* status_str(PyTkStatus* self) {
   return CreatePyString(tkrzw::ToString(*self->status));
 }
 
 // Implementation of Status#__richcmp__.
-static PyObject* status_richcmp(PyStatus* self, PyObject* pyrhs, int op) {
+static PyObject* status_richcmp(PyTkStatus* self, PyObject* pyrhs, int op) {
   bool rv = false;
   int32_t code = (int32_t)self->status->GetCode();
   int32_t rcode = 0;
   if (PyObject_IsInstance(pyrhs, cls_status)) {
-    PyStatus* pyrhs_status = (PyStatus*)pyrhs;
+    PyTkStatus* pyrhs_status = (PyTkStatus*)pyrhs;
     rcode = (int32_t)pyrhs_status->status->GetCode();
   } else if (PyLong_Check(pyrhs)) {
     rcode = (int32_t)PyLong_AsLong(pyrhs);
@@ -452,7 +452,7 @@ static PyObject* status_richcmp(PyStatus* self, PyObject* pyrhs, int op) {
 }
 
 // Implementation of Status#Set.
-static PyObject* status_Set(PyStatus* self, PyObject* pyargs) {
+static PyObject* status_Set(PyTkStatus* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc > 2) {
     ThrowInvalidArguments("too many arguments");
@@ -474,17 +474,17 @@ static PyObject* status_Set(PyStatus* self, PyObject* pyargs) {
 }
 
 // Implementation of Status#GetCode.
-static PyObject* status_GetCode(PyStatus* self) {
+static PyObject* status_GetCode(PyTkStatus* self) {
   return PyLong_FromLongLong(self->status->GetCode());
 }
 
 // Implementation of Status#GetMessage.
-static PyObject* status_GetMessage(PyStatus* self) {
+static PyObject* status_GetMessage(PyTkStatus* self) {
   return PyUnicode_FromString(self->status->GetMessage().c_str());
 }
 
 // Implementation of Status#IsOK.
-static PyObject* status_IsOK(PyStatus* self) {
+static PyObject* status_IsOK(PyTkStatus* self) {
   if (*self->status == tkrzw::Status::SUCCESS) {
     Py_RETURN_TRUE;
   }
@@ -492,7 +492,7 @@ static PyObject* status_IsOK(PyStatus* self) {
 }
 
 // Implementation of Status#OrDie.
-static PyObject* status_OrDie(PyStatus* self) {
+static PyObject* status_OrDie(PyTkStatus* self) {
   if (*self->status != tkrzw::Status::SUCCESS) {
     ThrowStatusException(*self->status);    
     return nullptr;
@@ -506,7 +506,7 @@ static bool DefineStatus() {
   const size_t zoff = offsetof(PyTypeObject, tp_name);
   std::memset((char*)&type_status + zoff, 0, sizeof(type_status) - zoff);
   type_status.tp_name = "tkrzw.Status";
-  type_status.tp_basicsize = sizeof(PyStatus);
+  type_status.tp_basicsize = sizeof(PyTkStatus);
   type_status.tp_itemsize = 0;
   type_status.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
   type_status.tp_doc = "Status of operations.";
@@ -596,13 +596,13 @@ static int expt_init(PyException* self, PyObject* pyargs, PyObject* pykwds) {
 
 // Implementation of StatusException#__repr__.
 static PyObject* expt_repr(PyException* self) {
-  const tkrzw::Status* status = ((PyStatus*)self->pystatus)->status;
+  const tkrzw::Status* status = ((PyTkStatus*)self->pystatus)->status;
   return CreatePyString(tkrzw::StrCat("<tkrzw.StatusException: ", *status, ">"));
 }
 
 // Implementation of StatusException#__str__.
 static PyObject* expt_str(PyException* self) {
-  const tkrzw::Status* status = ((PyStatus*)self->pystatus)->status;
+  const tkrzw::Status* status = ((PyTkStatus*)self->pystatus)->status;
   return CreatePyString(tkrzw::ToString(*status));
 }
 
@@ -768,7 +768,7 @@ static PyObject* dbm_Open(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     delete self->dbm;
     self->dbm = nullptr;
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Close.
@@ -782,7 +782,7 @@ static PyObject* dbm_Close(PyDBM* self) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Close();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Get.
@@ -815,7 +815,7 @@ static PyObject* dbm_Get(PyDBM* self, PyObject* pyargs) {
     status = self->dbm->Get(key.Get(), &value);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status != tkrzw::Status::SUCCESS) {
     Py_RETURN_NONE;
@@ -853,7 +853,7 @@ static PyObject* dbm_GetStr(PyDBM* self, PyObject* pyargs) {
     status = self->dbm->Get(key.Get(), &value);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status != tkrzw::Status::SUCCESS) {
     Py_RETURN_NONE;
@@ -950,7 +950,7 @@ static PyObject* dbm_Set(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Set(key.Get(), value.Get(), overwrite);
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#SetMulti.
@@ -975,7 +975,7 @@ static PyObject* dbm_SetMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
       status |= self->dbm->Set(record.first, record.second);
     }
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Remove.
@@ -996,7 +996,7 @@ static PyObject* dbm_Remove(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Remove(key.Get());
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Append.
@@ -1021,7 +1021,7 @@ static PyObject* dbm_Append(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Append(key.Get(), value.Get(), delim.Get());
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#CompareExchange.
@@ -1050,7 +1050,7 @@ static PyObject* dbm_CompareExchange(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->CompareExchange(key.Get(), expected.Get(), desired.Get());
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Increment.
@@ -1093,7 +1093,7 @@ static PyObject* dbm_Increment(PyDBM* self, PyObject* pyargs) {
     status = self->dbm->Increment(key.Get(), inc, &current, init);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status == tkrzw::Status::SUCCESS) {
     return PyLong_FromLongLong(current);
@@ -1164,7 +1164,7 @@ static PyObject* dbm_Clear(PyDBM* self) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Clear();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Rebuild.
@@ -1187,7 +1187,7 @@ static PyObject* dbm_Rebuild(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     NativeLock lock(self->concurrent);
     status = self->dbm->RebuildAdvanced(params);
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#ShouldBeRebuilt.
@@ -1226,7 +1226,7 @@ static PyObject* dbm_Synchronize(PyDBM* self, PyObject* pyargs, PyObject* pykwds
     NativeLock lock(self->concurrent);
     status = self->dbm->SynchronizeAdvanced(hard, nullptr, params);
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#CopyFile.
@@ -1247,7 +1247,7 @@ static PyObject* dbm_CopyFile(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->CopyFile(std::string(dest.Get()));
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Export.
@@ -1276,7 +1276,7 @@ static PyObject* dbm_Export(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Export(dest->dbm);
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#ExportKeysAsLines.
@@ -1302,7 +1302,7 @@ static PyObject* dbm_ExportKeysAsLines(PyDBM* self, PyObject* pyargs) {
       status |= file.Close();
     }
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of DBM#Inspect.
@@ -1684,7 +1684,7 @@ static PyObject* iter_First(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->First();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#Last.
@@ -1694,7 +1694,7 @@ static PyObject* iter_Last(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Last();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#Jump.
@@ -1711,7 +1711,7 @@ static PyObject* iter_Jump(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->Jump(key.Get());
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#JumpLower.
@@ -1729,7 +1729,7 @@ static PyObject* iter_JumpLower(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->JumpLower(key.Get(), inclusive);
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#JumpUpper.
@@ -1747,7 +1747,7 @@ static PyObject* iter_JumpUpper(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->JumpUpper(key.Get(), inclusive);
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#Next.
@@ -1757,7 +1757,7 @@ static PyObject* iter_Next(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Next();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#Previous.
@@ -1767,7 +1767,7 @@ static PyObject* iter_Previous(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Previous();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#Get.
@@ -1794,7 +1794,7 @@ static PyObject* iter_Get(PyIterator* self, PyObject* pyargs) {
     status = self->iter->Get(&key, &value);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status == tkrzw::Status::SUCCESS) {
     PyObject* pykey = CreatePyBytes(key);
@@ -1831,7 +1831,7 @@ static PyObject* iter_GetStr(PyIterator* self, PyObject* pyargs) {
     status = self->iter->Get(&key, &value);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status == tkrzw::Status::SUCCESS) {
     PyObject* pykey = CreatePyString(key);
@@ -1868,7 +1868,7 @@ static PyObject* iter_GetKey(PyIterator* self, PyObject* pyargs) {
     status = self->iter->Get(&key);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status != tkrzw::Status::SUCCESS) {
     Py_RETURN_NONE;
@@ -1900,7 +1900,7 @@ static PyObject* iter_GetKeyStr(PyIterator* self, PyObject* pyargs) {
     status = self->iter->Get(&key);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status != tkrzw::Status::SUCCESS) {
     Py_RETURN_NONE;
@@ -1932,7 +1932,7 @@ static PyObject* iter_GetValue(PyIterator* self, PyObject* pyargs) {
     status = self->iter->Get(nullptr, &value);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status != tkrzw::Status::SUCCESS) {
     Py_RETURN_NONE;
@@ -1964,7 +1964,7 @@ static PyObject* iter_GetValueStr(PyIterator* self, PyObject* pyargs) {
     status = self->iter->Get(nullptr, &value);
   }
   if (pystatus != nullptr) {
-    *((PyStatus*)pystatus)->status = status;
+    *((PyTkStatus*)pystatus)->status = status;
   }
   if (status != tkrzw::Status::SUCCESS) {
     Py_RETURN_NONE;
@@ -1986,7 +1986,7 @@ static PyObject* iter_Set(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->Set(value.Get());
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#Remove.
@@ -1996,7 +1996,7 @@ static PyObject* iter_Remove(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Remove();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of Iterator#__next__.
@@ -2127,7 +2127,7 @@ static PyObject* textfile_Open(PyTextFile* self, PyObject* pyargs) {
     NativeLock lock(true);
     status = self->file->Open(std::string(path.Get()), false);
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of TextFile#Close
@@ -2137,7 +2137,7 @@ static PyObject* textfile_Close(PyTextFile* self) {
     NativeLock lock(true);
     status = self->file->Close();
   }
-  return CreatePyStatus(status);
+  return CreatePyTkStatus(status);
 }
 
 // Implementation of TextFile#Search.
