@@ -79,15 +79,18 @@ check :
 
 apidoc :
 	$(MAKE) apidocclean
-	cp -f tkrzw-doc.py tkrzw.py
-	-[ -f tkrzw.so ] && mv -f tkrzw.so tkrzw-mod.so || true
-	-epydoc --name tkrzw --no-private --no-sourcecode -o api-doc -v tkrzw.py
-	-cat extra-doc.css >> api-doc/epydoc.css
-	-[ -f tkrzw-mod.so ] && mv -f tkrzw-mod.so tkrzw.so || true
-	rm -f tkrzw.py
+	mkdir -p tmp-doc
+	cp tkrzw-doc.py tmp-doc/tkrzw.py
+	cd tmp-doc ; sphinx-apidoc -F -H Tkrzw -A "Mikio Hirabayashi" -o out .
+	cat tmp-doc/out/conf.py |\
+	  sed -e 's/^# import /import /' -e 's/^# sys.path/sys.path/' > tmp-doc/out/conf.py.tmp
+	echo "autodoc_member_order = 'bysource'" >> tmp-doc/out/conf.py.tmp
+	mv -f tmp-doc/out/conf.py.tmp tmp-doc/out/conf.py
+	cd tmp-doc/out ; $(MAKE) html
+	mv tmp-doc/out/_build/html api-doc
 
 apidocclean :
-	rm -rf api-doc
+	rm -rf api-doc tmp-doc
 
 .PHONY: all clean install uninstall dist distclean check apidoc apidocclean
 
