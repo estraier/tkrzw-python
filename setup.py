@@ -21,7 +21,7 @@ package_name = 'Tkrzw'
 package_version = '0.1'
 package_description = 'a set of implementations of DBM'
 package_author = 'Mikio Hirabayashi'
-package_author_email = 'mikio@dbmx.net'
+package_author_email = 'hirarin@gmail.com'
 package_url = 'http://dbmx.net/tkrzw/'
 module_name = 'tkrzw'
 
