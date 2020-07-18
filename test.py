@@ -46,6 +46,10 @@ class TestTkrzw(unittest.TestCase):
   # Utility tests.
   def testUtility(self):
     self.assertTrue(re.search(r"^\d+.\d+.\d+$", Utility.VERSION))
+    self.assertEqual(-2 ** 31, Utility.INT32MIN)
+    self.assertEqual(2 ** 31 - 1, Utility.INT32MAX)
+    self.assertEqual(-2 ** 63, Utility.INT64MIN)
+    self.assertEqual(2 ** 63 - 1, Utility.INT64MAX)
     self.assertTrue(Utility.GetMemoryUsage() > 0)
     self.assertTrue(3042090208, Utility.PrimaryHash("abc", (1 << 32) - 1))
     self.assertTrue(16973900370012003622, Utility.PrimaryHash("abc"))
@@ -266,6 +270,9 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(0, len(export_dbm))
       self.assertEqual(Status.SUCCESS, export_dbm.Set("1", "100"))
       value = export_dbm.Increment("10000", 2, 10000, status)
+      self.assertEqual(Status.SUCCESS, status)
+      self.assertEqual(value, 10002)
+      value = export_dbm.Increment("10000", Utility.INT64MIN, 0, status);
       self.assertEqual(Status.SUCCESS, status)
       self.assertEqual(value, 10002)
       self.assertEqual(Status.DUPLICATION_ERROR, export_dbm.Set("1", "101", False))

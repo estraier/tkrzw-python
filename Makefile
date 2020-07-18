@@ -83,7 +83,8 @@ apidoc :
 	cp tkrzw-doc.py tmp-doc/tkrzw.py
 	cd tmp-doc ; sphinx-apidoc -F -H Tkrzw -A "Mikio Hirabayashi" -o out .
 	cat tmp-doc/out/conf.py |\
-	  sed -e 's/^# import /import /' -e 's/^# sys.path/sys.path/' > tmp-doc/out/conf.py.tmp
+	  sed -e 's/^# import /import /' -e 's/^# sys.path/sys.path/' \
+	    -e 's/alabaster/haiku/' > tmp-doc/out/conf.py.tmp
 	echo "autodoc_member_order = 'bysource'" >> tmp-doc/out/conf.py.tmp
 	mv -f tmp-doc/out/conf.py.tmp tmp-doc/out/conf.py
 	cd tmp-doc/out ; $(MAKE) html

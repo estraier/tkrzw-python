@@ -156,6 +156,14 @@ class Utility:
   
   VERSION = "0.0.0"
   """The package version numbers."""
+  INT32MIN = -2 ** 31
+  """The minimum value of int32."""
+  INT32MAX = 2 ** 31 - 1
+  """The minimum value of int32."""
+  INT64MIN = -2 ** 63
+  """The minimum value of int32."""
+  INT64MAX = 2 ** 63 - 1
+  """The minimum value of int32."""
 
   @classmethod
   def GetMemoryUsage(cls):
@@ -570,7 +578,7 @@ class DBM:
     Increments the numeric value of a record.
 
     :param key: The key of the record.
-    :param inc: The incremental value.
+    :param inc: The incremental value.  If it is Utility.INT64MIN, the current value is not changed and a new record is not created.
     :param init: The initial value.
     :param status: A status object to which the result status is assigned.  It can be omitted.
     :return: The current value, or None on failure.
