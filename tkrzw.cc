@@ -240,6 +240,13 @@ static bool SetConstLong(PyObject* pyobj, const char* name, int64_t value) {
   return PyObject_GenericSetAttr(pyobj, pyname, pyvalue) == 0;
 }
 
+// Sets a constant of unsigned long integer.
+static bool SetConstUnsignedLong(PyObject* pyobj, const char* name, uint64_t value) {
+  PyObject* pyname = PyUnicode_FromString(name);
+  PyObject* pyvalue = PyLong_FromUnsignedLongLong(value);
+  return PyObject_GenericSetAttr(pyobj, pyname, pyvalue) == 0;
+}
+
 // Sets a constant of string.
 static bool SetConstStr(PyObject* pyobj, const char* name, const char* value) {
   PyObject* pyname = PyUnicode_FromString(name);
@@ -375,8 +382,10 @@ static bool DefineUtility() {
   if (!SetConstStr(cls_utility, "VERSION", tkrzw::PACKAGE_VERSION)) return false;
   if (!SetConstLong(cls_utility, "INT32MIN", (int64_t)tkrzw::INT32MIN)) return false;
   if (!SetConstLong(cls_utility, "INT32MAX", (int64_t)tkrzw::INT32MAX)) return false;
+  if (!SetConstUnsignedLong(cls_utility, "UINT32MAX", (uint64_t)tkrzw::UINT32MAX)) return false;
   if (!SetConstLong(cls_utility, "INT64MIN", (int64_t)tkrzw::INT64MIN)) return false;
   if (!SetConstLong(cls_utility, "INT64MAX", (int64_t)tkrzw::INT64MAX)) return false;
+  if (!SetConstUnsignedLong(cls_utility, "UINT64MAX", (uint64_t)tkrzw::UINT64MAX)) return false;
   if (PyModule_AddObject(mod_tkrzw, "Utility", cls_utility) != 0) return false;
   return true;
 }

@@ -159,11 +159,15 @@ class Utility:
   INT32MIN = -2 ** 31
   """The minimum value of int32."""
   INT32MAX = 2 ** 31 - 1
-  """The minimum value of int32."""
+  """The maximum value of int32."""
+  UINT32MAX = 2 ** 32 - 1
+  """The maximum value of uint32."""
   INT64MIN = -2 ** 63
   """The minimum value of int64."""
   INT64MAX = 2 ** 63 - 1
-  """The minimum value of int64."""
+  """The maximum value of int64."""
+  UINT64MAX = 2 ** 64 - 1
+  """The maximum value of uint64."""
 
   @classmethod
   def GetMemoryUsage(cls):
