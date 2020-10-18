@@ -497,7 +497,7 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(3, len(textfile.Search("edit", "00000100", 3, True)))
     self.assertEqual(3, len(textfile.Search("edit", "00000100", 3, False)))
     self.assertEqual(Status.SUCCESS, textfile.Close())
-    
+
 
 # Main routine.
 def main(argv):

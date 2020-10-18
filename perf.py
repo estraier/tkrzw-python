@@ -92,7 +92,7 @@ def main(argv):
   print("Setting done: num_records={:d} file_size={:d} time={:.3f} qps={:.0f} mem={:d}".format(
     dbm.Count(), dbm.GetFileSize() or -1,
     elapsed, num_iterations * num_threads / elapsed, mem_usage))
-  print("")  
+  print("")
   class Getter(threading.Thread):
     def __init__(self, thid):
       threading.Thread.__init__(self)
@@ -168,7 +168,7 @@ def main(argv):
   print("Removing done: num_records={:d} file_size={:d} time={:.3f} qps={:.0f} mem={:d}".format(
     dbm.Count(), dbm.GetFileSize() or -1,
     elapsed, num_iterations * num_threads / elapsed, mem_usage))
-  print("")  
+  print("")
   dbm.Close().OrDie()
   return 0
 

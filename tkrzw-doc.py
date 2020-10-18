@@ -60,18 +60,18 @@ Example
 The following code is a typical example to use a database.  A DBM object can be used like a dictionary object.  As DBM implements the generic iterator protocol, you can access each record with the "for" loop.::
 
  import tkrzw
- 
+
  # Prepares the database.
  dbm = tkrzw.DBM()
  dbm.Open("casket.tkh", True, truncate=True, num_buckets=100)
- 
+
  # Sets records.
  # If the operation fails, a runtime exception is raised.
  # Keys and values are implicitly converted into bytes.
  dbm["first"] = "hop"
  dbm["second"] = "step"
  dbm["third"] = "jump"
- 
+
  # Retrieves record values.
  # If the operation fails, a runtime exception is raised.
  # Retrieved values are strings if keys are strings.
@@ -82,19 +82,19 @@ The following code is a typical example to use a database.  A DBM object can be 
      print(dbm["fourth"])
  except tkrzw.StatusException as e:
      print(repr(e))
- 
+
  # Traverses records.
  # Retrieved keys and values are always bytes so we decode them.
  for key, value in dbm:
      print(key.decode(), value.decode())
- 
+
  # Closes the database.
  dbm.Close()
-  
+
 The following code is a more complex example.  Resources of DBM and Iterator are bound to their objects so when the refenrece count becomes zero, resources are released.  Even if the database is not closed, the destructor closes it implicitly.  The method "OrDie" throws an exception on failure so it is useful for checking errors.::
 
  import tkrzw
- 
+
  # Prepares the database.
  # Options are given by dictionary expansion.
  # All methods except for [] and []= don't raise exceptions.
@@ -109,20 +109,20 @@ The following code is a more complex example.  Resources of DBM and Iterator are
  status = dbm.Open("casket.tkt", True, **open_params)
  if not status.IsOK():
      raise tkrzw.StatusException(status)
- 
+
  # Sets records.
  # The method OrDie raises a runtime error on failure.
  dbm.Set(1, "hop").OrDie()
  dbm.Set(2, "step").OrDie()
  dbm.Set(3, "jump").OrDie()
- 
+
  # Retrieves records without checking errors.
  # On failure, the return value is None.
  print(dbm.GetStr(1))
  print(dbm.GetStr(2))
  print(dbm.GetStr(3))
  print(dbm.GetStr(4))
- 
+
  # To know the status of retrieval, give a status object to Get.
  # You can compare a status object and a status code directly.
  status = tkrzw.Status()
@@ -130,11 +130,11 @@ The following code is a more complex example.  Resources of DBM and Iterator are
  print("status: " + str(status))
  if status == tkrzw.Status.SUCCESS:
      print("value: " + value)
- 
+
  # Rebuilds the database.
  # Almost the same options as the Open method can be given.
  dbm.Rebuild(align_pow=0, max_page_size=1024).OrDie()
- 
+
  # Traverses records with an iterator.
  it = dbm.MakeIterator()
  it.First()
@@ -145,7 +145,7 @@ The following code is a more complex example.  Resources of DBM and Iterator are
          break
      print(record[0], record[1])
      it.Next()
- 
+
  # Closes the database.
  dbm.Close()
 """
@@ -153,7 +153,7 @@ The following code is a more complex example.  Resources of DBM and Iterator are
 
 class Utility:
   """Library utilities."""
-  
+
   VERSION = "0.0.0"
   """The package version numbers."""
   INT32MIN = -2 ** 31
@@ -216,7 +216,7 @@ class Status:
   """
   Status of operations.
   """
-  
+
   SUCCESS = 0
   """Success."""
   UNKNOWN_ERROR = 1
@@ -315,7 +315,7 @@ class StatusException(RuntimeError):
   """
   Exception to convey the status of operations.
   """
-  
+
   def __init__(self, status):
     """
     Sets the status.
@@ -414,7 +414,7 @@ class DBM:
     :return: The iterator for each record.
     """
     pass  # native code
-  
+
   def Open(self, path, writable, **params):
     """
     Opens a database file.
@@ -433,7 +433,7 @@ class DBM:
       - .tkmc : On-memory cache database (CacheDBM)
       - .tksh : On-memory STL hash database (StdHashDBM)
       - .tkst : On-memory STL tree database (StdTreeDBM)
-    
+
     The optional parameters can include an option for the concurrency tuning.  By default, database operatins are done under the GIL (Global Interpreter Lock), which means that database operations are not done concurrently even if you use multiple threads.  If the "concurrent" parameter is true, database operations are done outside the GIL, which means that database operations can be done concurrently if you use multiple threads.  However, the downside is that swapping thread data is costly so the actual throughput is often worse in the concurrent mode than in the normal mode.  Therefore, the concurrent mode should be used only if the database is huge and it can cause blocking of threads in multi-thread usage.
     The optional parameters can include options for the file opening operation.
       - truncate (bool): True to truncate the file.
@@ -541,7 +541,7 @@ class DBM:
     :return: The result status.
     """
     pass  # native code
-  
+
   def Remove(self, key):
     """
     Removes a record of a key.
@@ -590,7 +590,7 @@ class DBM:
     The record value is stored as an 8-byte big-endian integer.  Negative is also supported.
     """
     pass  # native code
-  
+
   def Count(self):
     """
     Gets the number of records.
@@ -598,7 +598,7 @@ class DBM:
     :return: The number of records on success, or None on failure.
     """
     pass  # native code
-  
+
   def GetFileSize(self):
     """
     Gets the current file size of the database.
@@ -622,7 +622,7 @@ class DBM:
     :return: The result status.
     """
     pass  # native code
-  
+
   def Rebuild(self, **params):
     """
     Rebuilds the entire database.
@@ -661,7 +661,7 @@ class DBM:
     :return: The result status.
     """
     pass  # native code
-  
+
   def Export(self, dest_dbm):
     """
     Exports all records to another database.
@@ -687,7 +687,7 @@ class DBM:
     :return: A map of property names and their values.
     """
     pass  # native code
-  
+
   def IsOpen(self):
     """
     Checks whether the database is open.
@@ -723,7 +723,7 @@ class DBM:
     :return: A list of keys matching the condition.
     """
     pass  # native code
-  
+
   def MakeIterator(self):
     """
     Makes an iterator for each record.
@@ -779,7 +779,7 @@ class Iterator:
     Even if there's no record, the operation doesn't fail.
     """
     pass  # native code
-  
+
   def Last(self):
     """
     Initializes the iterator to indicate the last record.
@@ -789,7 +789,7 @@ class Iterator:
     Even if there's no record, the operation doesn't fail.  This method is suppoerted only by ordered databases.
     """
     pass  # native code
-  
+
   def Jump(self, key):
     """
     Initializes the iterator to indicate a specific record.
@@ -822,7 +822,7 @@ class Iterator:
     Even if there's no matching record, the operation doesn't fail.  This method is suppoerted only by ordered databases.
     """
     pass  # native code
-  
+
   def Next(self):
     """
     Moves the iterator to the next record.

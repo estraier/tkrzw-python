@@ -132,7 +132,7 @@ def main(argv):
   print("Done: num_records={:d} file_size={:d} time={:.3f} qps={:.0f} mem={:d}".format(
     dbm.Count(), dbm.GetFileSize() or -1,
     elapsed, num_iterations * num_threads / elapsed, mem_usage))
-  print("")  
+  print("")
   dbm.Close().OrDie()
   return 0
 
