@@ -153,7 +153,8 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.SUCCESS, dbm.Open(path, True, **open_params))
       self.assertTrue(dbm.IsOpen())
       inspect = dbm.Inspect()
-      self.assertEqual(conf["expected_class"], inspect["class"])
+      class_name = inspect["class"]
+      self.assertEqual(conf["expected_class"], class_name)
       for i in range(0, 20):
         key = "{:08d}".format(i)
         value = "{:d}".format(i)
@@ -167,7 +168,7 @@ class TestTkrzw(unittest.TestCase):
       if path:
         self.assertTrue(path in dbm.GetFilePath())
       self.assertTrue(dbm.IsHealthy())
-      if inspect["class"] in ("TreeDBM", "SkipDBM", "BabyDBM", "StdTreeDBM"):
+      if class_name in ("TreeDBM", "SkipDBM", "BabyDBM", "StdTreeDBM"):
         self.assertTrue(dbm.IsOrdered())
       else:
         self.assertFalse(dbm.IsOrdered())
@@ -182,6 +183,18 @@ class TestTkrzw(unittest.TestCase):
           self.assertTrue(status == Status.SUCCESS)
         else:
           self.assertTrue(status == Status.DUPLICATION_ERROR)
+      sv = dbm.SetAndGet("98765", "apple", False)
+      self.assertEqual(Status.SUCCESS, sv[0])
+      self.assertEqual(None, sv[1])
+      if class_name in ("TreeDBM", "TreeDBM", "TinyDBM", "BabyDBM"):
+        sv = dbm.SetAndGet("98765", "orange", False)
+        self.assertEqual(Status.DUPLICATION_ERROR, sv[0])
+        self.assertEqual("apple", sv[1])
+        sv = dbm.SetAndGet("98765", b"orange", True)
+        self.assertEqual(Status.SUCCESS, sv[0])
+        self.assertEqual(b"apple", sv[1])
+        self.assertEqual("orange", dbm.GetStr("98765"))
+      self.assertEqual(Status.SUCCESS, dbm.Remove("98765"))
       self.assertEqual(Status.SUCCESS, dbm.Synchronize(False, **conf["synchronize_params"]))
       records = {}
       for i in range(0, 20):

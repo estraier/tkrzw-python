@@ -991,6 +991,70 @@ static PyObject* dbm_SetMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
   return CreatePyTkStatus(status);
 }
 
+// Implementation of DBM#SetAndGet.
+static PyObject* dbm_SetAndGet(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 3) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 1);
+  const bool overwrite = argc > 2 ? PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 2)) : true;
+  SoftString key(pykey);
+  SoftString value(pyvalue);
+  tkrzw::Status impl_status(tkrzw::Status::SUCCESS);
+  std::string old_value;
+  bool hit = false;
+  class Processor final : public tkrzw::DBM::RecordProcessor {
+   public:
+    Processor(tkrzw::Status* status, std::string_view value, bool overwrite,
+              std::string* old_value, bool* hit)
+        : status_(status), value_(value), overwrite_(overwrite),
+          old_value_(old_value), hit_(hit) {}
+    std::string_view ProcessFull(std::string_view key, std::string_view value) override {
+      *old_value_ = value;
+      *hit_ = true;
+      if (overwrite_) {
+        return value_;
+      }
+      status_->Set(tkrzw::Status::DUPLICATION_ERROR);
+      return NOOP;
+    }
+    std::string_view ProcessEmpty(std::string_view key) override {
+      return value_;
+    }
+   private:
+    tkrzw::Status* status_;
+    std::string_view value_;
+    bool overwrite_;
+    std::string* old_value_;
+    bool* hit_;
+  };
+  Processor proc(&impl_status, value.Get(), overwrite, &old_value, &hit);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->Process(key.Get(), &proc, true);
+  }
+  status |= impl_status;
+  PyObject* pytuple = PyTuple_New(2);
+  PyTuple_SET_ITEM(pytuple, 0, CreatePyTkStatus(status));
+  if (hit) {
+    PyObject* pyold_value = PyUnicode_Check(pyvalue) ?
+        CreatePyString(old_value) : CreatePyBytes(old_value);
+    PyTuple_SET_ITEM(pytuple, 1, pyold_value);
+  } else {
+    Py_INCREF(Py_None);
+    PyTuple_SET_ITEM(pytuple, 1, Py_None);
+  }
+  return pytuple;
+}
+
 // Implementation of DBM#Remove.
 static PyObject* dbm_Remove(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
@@ -1571,6 +1635,8 @@ static bool DefineDBM() {
      "Sets a record of a key and a value."},
     {"SetMulti", (PyCFunction)dbm_SetMulti, METH_VARARGS | METH_KEYWORDS,
      "Sets multiple records specified by an initializer list of pairs of strings."},
+    {"SetAndGet", (PyCFunction)dbm_SetAndGet, METH_VARARGS,
+     "Sets a record and get the old value."},
     {"Remove", (PyCFunction)dbm_Remove, METH_VARARGS,
      "Removes a record of a key."},
     {"Append", (PyCFunction)dbm_Append, METH_VARARGS,

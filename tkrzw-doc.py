@@ -435,6 +435,7 @@ class DBM:
       - .tkst : On-memory STL tree database (StdTreeDBM)
 
     The optional parameters can include an option for the concurrency tuning.  By default, database operatins are done under the GIL (Global Interpreter Lock), which means that database operations are not done concurrently even if you use multiple threads.  If the "concurrent" parameter is true, database operations are done outside the GIL, which means that database operations can be done concurrently if you use multiple threads.  However, the downside is that swapping thread data is costly so the actual throughput is often worse in the concurrent mode than in the normal mode.  Therefore, the concurrent mode should be used only if the database is huge and it can cause blocking of threads in multi-thread usage.
+
     The optional parameters can include options for the file opening operation.
       - truncate (bool): True to truncate the file.
       - no_create (bool): True to omit file creation.
@@ -510,6 +511,7 @@ class DBM:
   def GetMulti(self, *keys):
     """
     Gets the values of multiple records of keys.
+
     :param keys: The keys of records to retrieve.
     :return: A map of retrieved records.  Keys which don't match existing records are ignored.
     """
@@ -518,12 +520,13 @@ class DBM:
   def GetMultiStr(self, *keys):
     """
     Gets the values of multiple records of keys, as strings.
+
     :param keys: The keys of records to retrieve.
     :return: A map of retrieved records.  Keys which don't match existing records are ignored.
     """
     pass  # native code
 
-  def Set(self, key, value, overwrite=False):
+  def Set(self, key, value, overwrite=True):
     """
     Sets a record of a key and a value.
 
@@ -537,8 +540,20 @@ class DBM:
   def SetMulti(self, **records):
     """
     Sets multiple records of the keyword arguments.
+
     :param records: Records to store.  Existing records with the same keys are overwritten.
     :return: The result status.
+    """
+    pass  # native code
+
+  def SetAndGet(self, key, value, overwrite=True):
+    """
+    Sets a record and get the old value.
+
+    :param key: The key of the record.
+    :param value: The value of the record.
+    :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+    :return: A pair of the result status and the old value.  If the record has not existed when inserting the new record, None is assigned as the value.  If not None, the type of the returned old value is the same as the parameter value.
     """
     pass  # native code
 
@@ -804,6 +819,7 @@ class Iterator:
   def JumpLower(self, key, inclusive=False):
     """
     Initializes the iterator to indicate the last record whose key is lower than a given key.
+
     :param key: The key to compare with.
     :param inclusive: If true, the considtion is inclusive: equal to or lower than the key.
     :return: The result status.
@@ -815,6 +831,7 @@ class Iterator:
   def JumpUpper(self, key, inclusive=False):
     """
     Initializes the iterator to indicate the first record whose key is upper than a given key.
+
     :param key: The key to compare with.
     :param inclusive: If true, the considtion is inclusive: equal to or upper than the key.
     :return: The result status.
