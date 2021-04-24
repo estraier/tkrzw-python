@@ -194,6 +194,13 @@ class TestTkrzw(unittest.TestCase):
         self.assertEqual(Status.SUCCESS, sv[0])
         self.assertEqual(b"apple", sv[1])
         self.assertEqual("orange", dbm.GetStr("98765"))
+        sv = dbm.RemoveAndGet("98765")
+        self.assertEqual(Status.SUCCESS, sv[0])
+        self.assertEqual("orange", sv[1])
+        sv = dbm.RemoveAndGet("98765")
+        self.assertEqual(Status.NOT_FOUND_ERROR, sv[0])
+        self.assertEqual(None, sv[1])
+        self.assertEqual(Status.SUCCESS, dbm.Set("98765", "banana"))
       self.assertEqual(Status.SUCCESS, dbm.Remove("98765"))
       self.assertEqual(Status.SUCCESS, dbm.Synchronize(False, **conf["synchronize_params"]))
       records = {}

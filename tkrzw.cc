@@ -1076,6 +1076,57 @@ static PyObject* dbm_Remove(PyDBM* self, PyObject* pyargs) {
   return CreatePyTkStatus(status);
 }
 
+// Implementation of DBM#RemoveAndGet.
+static PyObject* dbm_RemoveAndGet(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  tkrzw::Status impl_status(tkrzw::Status::SUCCESS);
+  std::string old_value;
+  class Processor final : public tkrzw::DBM::RecordProcessor {
+   public:
+    Processor(tkrzw::Status* status, std::string* old_value)
+        : status_(status), old_value_(old_value) {}
+    std::string_view ProcessFull(std::string_view key, std::string_view value) override {
+      *old_value_ = value;
+      return REMOVE;
+    }
+    std::string_view ProcessEmpty(std::string_view key) override {
+      status_->Set(tkrzw::Status::NOT_FOUND_ERROR);
+      return NOOP;
+    }
+   private:
+    tkrzw::Status* status_;
+    std::string* old_value_;
+  };
+  Processor proc(&impl_status, &old_value);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->Process(key.Get(), &proc, true);
+  }
+  status |= impl_status;
+  PyObject* pytuple = PyTuple_New(2);
+  PyTuple_SET_ITEM(pytuple, 0, CreatePyTkStatus(status));
+  if (status == tkrzw::Status::SUCCESS) {
+    PyObject* pyold_value = PyUnicode_Check(pykey) ?
+        CreatePyString(old_value) : CreatePyBytes(old_value);
+    PyTuple_SET_ITEM(pytuple, 1, pyold_value);
+  } else {
+    Py_INCREF(Py_None);
+    PyTuple_SET_ITEM(pytuple, 1, Py_None);
+  }
+  return pytuple;
+}
+
 // Implementation of DBM#Append.
 static PyObject* dbm_Append(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
@@ -1639,6 +1690,8 @@ static bool DefineDBM() {
      "Sets a record and get the old value."},
     {"Remove", (PyCFunction)dbm_Remove, METH_VARARGS,
      "Removes a record of a key."},
+    {"RemoveAndGet", (PyCFunction)dbm_RemoveAndGet, METH_VARARGS,
+     "Removes a record and get the value."},
     {"Append", (PyCFunction)dbm_Append, METH_VARARGS,
      "Appends data at the end of a record of a key."},
     {"CompareExchange", (PyCFunction)dbm_CompareExchange, METH_VARARGS,

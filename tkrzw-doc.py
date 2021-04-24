@@ -566,6 +566,15 @@ class DBM:
     """
     pass  # native code
 
+  def RemoveAndGet(self, key):
+    """
+    Removes a record and get the value.
+
+    :param key: The key of the record.
+    :return: A pair of the result status and the record value.  If the record does not exist, None is assigned as the value.  If not None, the type of the returned value is the same as the parameter key.
+    """
+    pass  # native code
+
   def Append(self, key, value, delim=""):
     """
     Appends data at the end of a record of a key.
