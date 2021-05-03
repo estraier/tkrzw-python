@@ -444,6 +444,8 @@ class DBM:
 
     The optional parameter "dbm" supercedes the decision of the database type by the extension.  The value is the type name: "HashDBM", "TreeDBM", "SkipDBM", "TinyDBM", "BabyDBM", "CacheDBM", "StdHashDBM", "StdTreeDBM".
 
+    The optional parameter "file" specifies the internal file implementation class.  The default file class is "MemoryMapAtomicFile".  The other supported classes are "StdFile", "MemoryMapAtomicFile", "PositionalParallelFile", and "PositionalAtomicFile".
+
     For HashDBM, these optional parameters are supported.
       - update_mode (string): How to update the database file: "UPDATE_IN_PLACE" for the in-palce and "UPDATE_APPENDING" for the appending mode.
       - offset_width (int): The width to represent the offset of records.
@@ -456,7 +458,7 @@ class DBM:
       - max_page_size (int): The maximum size of a page.
       - max_branches (int): The maximum number of branches each inner node can have.
       - max_cached_pages (int): The maximum number of cached pages.
-      - key_comparator (string): The comparator of record keys: "LexicalKeyComparator" for the lexical order, "LexicalCaseKeyComparator" for the lexical order ignoring case, "DecimalKeyComparator" for the order of the decimal integer numeric expressions, "HexadecimalKeyComparato" for the order of the hexadecimal integer numeric expressions, "RealNumberKeyComparator" for the order of the decimal real number expressions.
+      - key_comparator (string): The comparator of record keys: "LexicalKeyComparator" for the lexical order, "LexicalCaseKeyComparator" for the lexical order ignoring case, "DecimalKeyComparator" for the order of the decimal integer numeric expressions, "HexadecimalKeyComparator" for the order of the hexadecimal integer numeric expressions, "RealNumberKeyComparator" for the order of the decimal real number expressions.
 
     For SkipDBM, these optional parameters are supported.
       - offset_width (int): The width to represent the offset of records.
@@ -677,7 +679,7 @@ class DBM:
     """
     pass  # native code
 
-  def CopyFile(self, dest_path):
+  def CopyFileData(self, dest_path):
     """
     Copies the content of the database file to another file.
 

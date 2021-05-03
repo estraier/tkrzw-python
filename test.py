@@ -266,7 +266,7 @@ class TestTkrzw(unittest.TestCase):
       if path:
         base, ext = os.path.splitext(path)
         copy_path = base + "-copy" + ext
-        self.assertEqual(Status.SUCCESS, dbm.CopyFile(copy_path))
+        self.assertEqual(Status.SUCCESS, dbm.CopyFileData(copy_path))
         copy_dbm = DBM()
         if "." in path:
           self.assertEqual(Status.SUCCESS, copy_dbm.Open(copy_path, False))

@@ -1357,8 +1357,8 @@ static PyObject* dbm_Synchronize(PyDBM* self, PyObject* pyargs, PyObject* pykwds
   return CreatePyTkStatus(status);
 }
 
-// Implementation of DBM#CopyFile.
-static PyObject* dbm_CopyFile(PyDBM* self, PyObject* pyargs) {
+// Implementation of DBM#CopyFileData.
+static PyObject* dbm_CopyFileData(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
     return nullptr;
@@ -1373,7 +1373,7 @@ static PyObject* dbm_CopyFile(PyDBM* self, PyObject* pyargs) {
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = self->dbm->CopyFile(std::string(dest.Get()));
+    status = self->dbm->CopyFileData(std::string(dest.Get()));
   }
   return CreatePyTkStatus(status);
 }
@@ -1712,7 +1712,7 @@ static bool DefineDBM() {
      "Checks whether the database should be rebuilt."},
     {"Synchronize", (PyCFunction)dbm_Synchronize, METH_VARARGS | METH_KEYWORDS,
      "Synchronizes the content of the database to the file system."},
-    {"CopyFile", (PyCFunction)dbm_CopyFile, METH_VARARGS,
+    {"CopyFileData", (PyCFunction)dbm_CopyFileData, METH_VARARGS,
      "Copies the content of the database file to another file."},
     {"Export", (PyCFunction)dbm_Export, METH_VARARGS,
      "Exports all records to another database."},
