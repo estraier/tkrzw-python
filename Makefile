@@ -1,7 +1,7 @@
 # Makefile for Tkrzw for Python
 
 PACKAGE = tkrzw-python
-VERSION = 0.1.7
+VERSION = 0.1.8
 PACKAGEDIR = $(PACKAGE)-$(VERSION)
 PACKAGETGZ = $(PACKAGE)-$(VERSION).tar.gz
 
@@ -84,9 +84,14 @@ apidoc :
 	cd tmp-doc ; sphinx-apidoc -F -H Tkrzw -A "Mikio Hirabayashi" -o out .
 	cat tmp-doc/out/conf.py |\
 	  sed -e 's/^# import /import /' -e 's/^# sys.path/sys.path/' \
-	    -e 's/alabaster/haiku/' > tmp-doc/out/conf.py.tmp
+	    -e 's/alabaster/haiku/' \
+      -e '/sphinx\.ext\.viewcode/d' \
+      -e '/^extensions = /a "sphinx.ext.autosummary",' > tmp-doc/out/conf.py.tmp
+	echo >> tmp-doc/out/conf.py.tmp
 	echo "autodoc_member_order = 'bysource'" >> tmp-doc/out/conf.py.tmp
+	echo "html_title = 'Python binding of Tkrzw'" >> tmp-doc/out/conf.py.tmp
 	mv -f tmp-doc/out/conf.py.tmp tmp-doc/out/conf.py
+	cp -f tkrzw-index.rst tmp-doc/out/index.rst
 	cd tmp-doc/out ; $(MAKE) html
 	mv tmp-doc/out/_build/html api-doc
 

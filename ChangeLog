@@ -1,0 +1,6 @@
+2021-05-16  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.8
+
+	- Supports tunning parameters of Direct I/O.
+	- Compatibility to the C++ library: Tkrzw 0.9.17
