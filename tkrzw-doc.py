@@ -436,6 +436,15 @@ class DBM:
     """
     pass  # native code
 
+  def RemoveMulti(self, keys):
+    """
+    Removes records of keys.
+
+    :param key: The keys of the records.
+    :return: The result status.
+    """
+    pass  # native code
+
   def RemoveAndGet(self, key):
     """
     Removes a record and get the value.

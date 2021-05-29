@@ -1,3 +1,10 @@
+2021-05-29  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.9
+
+	- Add RemoveMulti method.
+	- Compatibility to the C++ library: Tkrzw 0.9.21
+
 2021-05-16  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.8

@@ -887,15 +887,11 @@ static PyObject* dbm_GetMulti(PyDBM* self, PyObject* pyargs) {
     SoftString key(pykey);
     keys.emplace_back(std::string(key.Get()));
   }
-  std::vector<std::pair<std::string, std::string>> records;
+  std::vector<std::string_view> key_views(keys.begin(), keys.end());
+  std::map<std::string, std::string> records;
   {
     NativeLock lock(self->concurrent);
-    for (const auto& key : keys) {
-      std::string value;
-      if (self->dbm->Get(key, &value) == tkrzw::Status::SUCCESS) {
-        records.emplace_back(std::make_pair(key, value));
-      }
-    }
+    records = self->dbm->GetMulti(key_views);
   }
   PyObject* pyrv = PyDict_New();
   for (const auto& rec : records) {
@@ -981,12 +977,15 @@ static PyObject* dbm_SetMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
   if (pykwds != nullptr) {
     records = MapKeywords(pykwds);
   }
+  std::map<std::string_view, std::string_view> record_views;
+  for (const auto& record : records) {
+    record_views.emplace(std::make_pair(
+        std::string_view(record.first), std::string_view(record.second)));
+  }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    for (const auto& record : records) {
-      status |= self->dbm->Set(record.first, record.second);
-    }
+    status = self->dbm->SetMulti(record_views);
   }
   return CreatePyTkStatus(status);
 }
@@ -1072,6 +1071,28 @@ static PyObject* dbm_Remove(PyDBM* self, PyObject* pyargs) {
   {
     NativeLock lock(self->concurrent);
     status = self->dbm->Remove(key.Get());
+  }
+  return CreatePyTkStatus(status);
+}
+
+// Implementation of DBM#RemoveMulti.
+static PyObject* dbm_RemoveMulti(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  std::vector<std::string> keys;
+  for (int32_t i = 0; i < argc; i++) {
+    PyObject* pykey = PyTuple_GET_ITEM(pyargs, i);
+    SoftString key(pykey);
+    keys.emplace_back(std::string(key.Get()));
+  }
+  std::vector<std::string_view> key_views(keys.begin(), keys.end());
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->RemoveMulti(key_views);
   }
   return CreatePyTkStatus(status);
 }
@@ -1690,6 +1711,8 @@ static bool DefineDBM() {
      "Sets a record and get the old value."},
     {"Remove", (PyCFunction)dbm_Remove, METH_VARARGS,
      "Removes a record of a key."},
+    {"RemoveMulti", (PyCFunction)dbm_RemoveMulti, METH_VARARGS,
+     "Removes records of keys."},
     {"RemoveAndGet", (PyCFunction)dbm_RemoveAndGet, METH_VARARGS,
      "Removes a record and get the value."},
     {"Append", (PyCFunction)dbm_Append, METH_VARARGS,
