@@ -1188,16 +1188,22 @@ static PyObject* dbm_CompareExchange(PyDBM* self, PyObject* pyargs) {
   PyObject* pyexpected = PyTuple_GET_ITEM(pyargs, 1);
   PyObject* pydesired = PyTuple_GET_ITEM(pyargs, 2);
   SoftString key(pykey);
-  SoftString expected(pyexpected);
+  std::unique_ptr<SoftString> expected;
+  std::string_view expected_view;
+  if (pyexpected != Py_None) {
+    expected = std::make_unique<SoftString>(pyexpected);
+    expected_view = expected->Get();
+  }
+  std::unique_ptr<SoftString> desired;
+  std::string_view desired_view;
+  if (pydesired != Py_None) {
+    desired = std::make_unique<SoftString>(pydesired);
+    desired_view = desired->Get();
+  }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
-  if (pydesired == Py_None) {
-    std::string_view desired;
+  {
     NativeLock lock(self->concurrent);
-    status = self->dbm->CompareExchange(key.Get(), expected.Get(), desired);
-  } else {
-    SoftString desired(pydesired);
-    NativeLock lock(self->concurrent);
-    status = self->dbm->CompareExchange(key.Get(), expected.Get(), desired.Get());
+    status = self->dbm->CompareExchange(key.Get(), expected_view, desired_view);
   }
   return CreatePyTkStatus(status);
 }

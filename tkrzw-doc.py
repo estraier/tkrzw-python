@@ -404,7 +404,7 @@ class DBM:
     :param key: The key of the record.
     :param value: The value of the record.
     :param overwrite: Whether to overwrite the existing value.  It can be omitted and then false is set.
-    :return: The result status.
+    :return: The result status.  If overwriting is abandoned, DUPLICATION_ERROR is returned.
     """
     pass  # native code
 
@@ -433,7 +433,7 @@ class DBM:
     Removes a record of a key.
 
     :param key: The key of the record.
-    :return: The result status.
+    :return: The result status.  If there's no matching record, NOT_FOUND_ERROR is returned.
     """
     pass  # native code
 
@@ -442,7 +442,7 @@ class DBM:
     Removes records of keys.
 
     :param key: The keys of the records.
-    :return: The result status.
+    :return: The result status.  If there are missing records, NOT_FOUND_ERROR is returned.
     """
     pass  # native code
 
@@ -473,11 +473,9 @@ class DBM:
     Compares the value of a record and exchanges if the condition meets.
 
     :param key: The key of the record.
-    :param expected: The expected value.
+    :param expected: The expected value.  If it is None, no existing record is expected.
     :param desired: The desired value.  If it is None, the record is to be removed.
-    :return: The result status.
-
-    If the record doesn't exist, NOT_FOUND_ERROR is returned.  If the existing value is different from the expected value, DUPLICATION_ERROR is returned.  Otherwise, the desired value is set.
+    :return: The result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
     """
     pass  # native code
 
