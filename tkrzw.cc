@@ -278,7 +278,7 @@ static std::vector<std::pair<std::string_view, std::string_view>> ExtractSVPairs
     PyObject* pyseq, std::vector<std::string>* placeholder) {
   std::vector<std::pair<std::string_view, std::string_view>> result;
   const size_t size = PySequence_Size(pyseq);
-  result->reserve(size);
+  result.reserve(size);
   placeholder->reserve(size * 2);
   for (size_t i = 0; i < size; i++) {
     PyObject* pypair = PySequence_GetItem(pyseq, i);
