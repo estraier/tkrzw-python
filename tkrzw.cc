@@ -273,6 +273,38 @@ static std::map<std::string, std::string> MapKeywords(PyObject* pykwds) {
   return map;
 }
 
+// Extracts a list of pairs of string views from a sequence object.
+static std::vector<std::pair<std::string_view, std::string_view>> ExtractSVPairs(
+    PyObject* pyseq, std::vector<std::string>* placeholder) {
+  std::vector<std::pair<std::string_view, std::string_view>> result;
+  const size_t size = PySequence_Size(pyseq);
+  result->reserve(size);
+  placeholder->reserve(size * 2);
+  for (size_t i = 0; i < size; i++) {
+    PyObject* pypair = PySequence_GetItem(pyseq, i);
+    if (PySequence_Check(pypair) && PySequence_Size(pypair) >= 2) {
+      PyObject* pykey = PySequence_GetItem(pypair, 0);
+      PyObject* pyvalue = PySequence_GetItem(pypair, 1);
+      {
+        SoftString key(pykey);
+        placeholder->emplace_back(std::string(key.Get()));
+        std::string_view key_view = placeholder->back();
+        std::string_view value_view;
+        if (pyvalue != Py_None) {
+          SoftString value(pyvalue);
+          placeholder->emplace_back(std::string(value.Get()));
+          value_view = placeholder->back();
+        }
+        result.emplace_back(std::make_pair(key_view, value_view));
+      }
+      Py_DECREF(pykey);
+      Py_DECREF(pyvalue);
+    }
+    Py_DECREF(pypair);
+  }
+  return result;
+}
+
 // Defines the module.
 static bool DefineModule() {
   static PyModuleDef module_def = { PyModuleDef_HEAD_INIT };
@@ -1256,6 +1288,35 @@ static PyObject* dbm_Increment(PyDBM* self, PyObject* pyargs) {
   Py_RETURN_NONE;
 }
 
+// Implementation of DBM#CompareExchangeMulti.
+static PyObject* dbm_CompareExchangeMulti(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyexpected = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pydesired = PyTuple_GET_ITEM(pyargs, 1);
+  if (!PySequence_Check(pyexpected) || !PySequence_Check(pydesired)) {
+    ThrowInvalidArguments("parameters must be sequences of strings");
+    return nullptr;
+  }
+  std::vector<std::string> expected_ph;
+  const auto& expected = ExtractSVPairs(pyexpected, &expected_ph);
+  std::vector<std::string> desired_ph;
+  const auto& desired = ExtractSVPairs(pydesired, &desired_ph);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->CompareExchangeMulti(expected, desired);
+  }
+  return CreatePyTkStatus(status);
+}
+
 // Implementation of DBM#Count.
 static PyObject* dbm_Count(PyDBM* self) {
   if (self->dbm == nullptr) {
@@ -1727,6 +1788,8 @@ static bool DefineDBM() {
      "Compares the value of a record and exchanges if the condition meets."},
     {"Increment", (PyCFunction)dbm_Increment, METH_VARARGS,
      "Increments the numeric value of a record."},
+    {"CompareExchangeMulti", (PyCFunction)dbm_CompareExchangeMulti, METH_VARARGS,
+     "Compares the values of records and exchanges if the condition meets."},
     {"Count", (PyCFunction)dbm_Count, METH_NOARGS,
      "Gets the number of records."},
     {"GetFileSize", (PyCFunction)dbm_GetFileSize, METH_NOARGS,

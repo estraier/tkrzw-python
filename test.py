@@ -309,6 +309,26 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.INFEASIBLE_ERROR, export_dbm.CompareExchange("1", None, "yyy"))
       self.assertEqual("zzz", export_dbm.GetStr("1", status))
       self.assertEqual(Status.SUCCESS, export_dbm.CompareExchange("1", "zzz", None))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
+        (("hop", None), ("step", None)),
+        (("hop", "one"), ("step", "two"))))
+      self.assertEqual("one", export_dbm.GetStr("hop"))
+      self.assertEqual("two", export_dbm.GetStr("step"))
+      self.assertEqual(Status.INFEASIBLE_ERROR, export_dbm.CompareExchangeMulti(
+        (("hop", "one"), ("step", None)),
+        (("hop", "uno"), ("step", "dos"))))
+      self.assertEqual("one", export_dbm.GetStr("hop"))
+      self.assertEqual("two", export_dbm.GetStr("step"))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
+        (("hop", "one"), ("step", "two")),
+        (("hop", "1"), ("step", "2"))))
+      self.assertEqual("1", export_dbm.GetStr("hop"))
+      self.assertEqual("2", export_dbm.GetStr("step"))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
+        (("hop", "1"), ("step", "2")),
+        (("hop", None), ("step", None))))
+      self.assertEqual(None, export_dbm.GetStr("hop"))
+      self.assertEqual(None, export_dbm.GetStr("step"))
       it = export_dbm.MakeIterator()
       self.assertEqual(Status.SUCCESS, it.First())
       self.assertEqual(Status.SUCCESS, it.Set("foobar"))
