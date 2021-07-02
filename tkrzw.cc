@@ -776,6 +776,7 @@ static PyObject* dbm_Open(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
   if (pykwds != nullptr) {
     params = MapKeywords(pykwds);
     num_shards = tkrzw::StrToInt(tkrzw::SearchMap(params, "num_shards", "-1"));
+    params.erase("num_shards");
     if (tkrzw::StrToBool(tkrzw::SearchMap(params, "concurrent", "false"))) {
       concurrent = true;
     }
@@ -801,7 +802,6 @@ static PyObject* dbm_Open(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     self->dbm = new tkrzw::ShardDBM();
   } else {
     self->dbm = new tkrzw::PolyDBM();
-    params.erase("num_shards");
   }
   self->concurrent = concurrent;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
