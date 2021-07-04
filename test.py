@@ -281,6 +281,10 @@ class TestTkrzw(unittest.TestCase):
           it_records[key.decode()] = value.decode()
         self.assertEqual(records, it_records)
         self.assertEqual(Status.SUCCESS, copy_dbm.Close())
+        if class_name in ("HashDBM", "TreeDBM"):
+          restored_path = copy_path + "-restored"
+          self.assertEqual(Status.SUCCESS, DBM.RestoreDatabase(
+            copy_path, restored_path, class_name, -1))
       export_dbm = DBM()
       self.assertEqual(Status.SUCCESS, export_dbm.Open("", True, dbm="BabyDBM"))
       self.assertEqual(Status.SUCCESS, dbm.Export(export_dbm))

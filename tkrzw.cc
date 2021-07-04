@@ -344,7 +344,7 @@ static PyObject* utility_PrimaryHash(PyObject* self, PyObject* pyargs) {
   if (num_buckets == 0) {
     num_buckets = tkrzw::UINT64MAX;
   }
-  return PyLong_FromUnsignedLongLong(tkrzw::PrimaryHash(data.Get(), num_buckets));  
+  return PyLong_FromUnsignedLongLong(tkrzw::PrimaryHash(data.Get(), num_buckets));
 }
 
 // Implementation of Utility.SecondaryHash.
@@ -776,7 +776,6 @@ static PyObject* dbm_Open(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
   if (pykwds != nullptr) {
     params = MapKeywords(pykwds);
     num_shards = tkrzw::StrToInt(tkrzw::SearchMap(params, "num_shards", "-1"));
-    params.erase("num_shards");
     if (tkrzw::StrToBool(tkrzw::SearchMap(params, "concurrent", "false"))) {
       concurrent = true;
     }
@@ -1653,6 +1652,32 @@ static PyObject* dbm_MakeIterator(PyDBM* self) {
   return (PyObject*)pyiter;
 }
 
+// Implementation of DBM.RestoreDatabase.
+static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 4) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  SoftString old_file_path(PyTuple_GET_ITEM(pyargs, 0));
+  SoftString new_file_path(PyTuple_GET_ITEM(pyargs, 1));
+  SoftString class_name(argc > 2 ? PyTuple_GET_ITEM(pyargs, 2) : Py_None);
+  const int64_t end_offset = argc > 3 ? PyObjToInt(PyTuple_GET_ITEM(pyargs, 3)) : -1;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  int32_t num_shards = 0;
+  if (tkrzw::ShardDBM::GetNumberOfShards(std::string(old_file_path.Get()), &num_shards) ==
+      tkrzw::Status::SUCCESS) {
+    status = tkrzw::ShardDBM::RestoreDatabase(
+        std::string(old_file_path.Get()), std::string(new_file_path.Get()),
+        std::string(class_name.Get()), end_offset);
+  } else {
+    status = tkrzw::PolyDBM::RestoreDatabase(
+        std::string(old_file_path.Get()), std::string(new_file_path.Get()),
+        std::string(class_name.Get()), end_offset);
+  }
+  return CreatePyTkStatus(status);
+}
+
 // Implementation of DBM#__len__.
 static Py_ssize_t dbm_len(PyDBM* self) {
   if (self->dbm == nullptr) {
@@ -1821,6 +1846,8 @@ static bool DefineDBM() {
     {"Search", (PyCFunction)dbm_Search, METH_VARARGS,
      "Searches the database and get keys which match a pattern."},
     {"MakeIterator", (PyCFunction)dbm_MakeIterator, METH_NOARGS,
+     "Makes an iterator for each record."},   
+    {"RestoreDatabase", (PyCFunction)dbm_RestoreDatabase, METH_VARARGS | METH_STATIC,
      "Makes an iterator for each record."},   
     {nullptr, nullptr, 0, nullptr},
   };
