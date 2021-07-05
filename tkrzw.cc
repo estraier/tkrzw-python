@@ -1609,23 +1609,13 @@ static PyObject* dbm_Search(PyDBM* self, PyObject* pyargs) {
   SoftString mode(pymode);
   std::vector<std::string> keys;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
-  if (mode.Get() == "contain") {
+  {
     NativeLock lock(self->concurrent);
-    status = tkrzw::SearchDBM(self->dbm, pattern.Get(), &keys, capacity, tkrzw::StrContains);
-  } else if (mode.Get() == "begin") {
-    NativeLock lock(self->concurrent);
-    status = tkrzw::SearchDBMForwardMatch(self->dbm, pattern.Get(), &keys, capacity);
-  } else if (mode.Get() == "end") {
-    NativeLock lock(self->concurrent);
-    status = tkrzw::SearchDBM(self->dbm, pattern.Get(), &keys, capacity, tkrzw::StrEndsWith);
-  } else if (mode.Get() == "regex") {
-    NativeLock lock(self->concurrent);
-    status = tkrzw::SearchDBMRegex(self->dbm, pattern.Get(), &keys, capacity, utf);
-  } else if (mode.Get() == "edit") {
-    NativeLock lock(self->concurrent);
-    status = tkrzw::SearchDBMEditDistance(self->dbm, pattern.Get(), &keys, capacity, utf);
-  } else {
-    ThrowInvalidArguments("unknown mode");
+    status = tkrzw::SearchDBMModal(
+        self->dbm, mode.Get(), pattern.Get(), &keys, capacity, utf);
+  }
+  if (status != tkrzw::Status::SUCCESS) {
+    ThrowStatusException(status);    
     return nullptr;
   }
   PyObject* pyrv = PyList_New(keys.size());
@@ -1667,10 +1657,12 @@ static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
   int32_t num_shards = 0;
   if (tkrzw::ShardDBM::GetNumberOfShards(std::string(old_file_path.Get()), &num_shards) ==
       tkrzw::Status::SUCCESS) {
+    NativeLock lock(true);
     status = tkrzw::ShardDBM::RestoreDatabase(
         std::string(old_file_path.Get()), std::string(new_file_path.Get()),
         std::string(class_name.Get()), end_offset);
   } else {
+    NativeLock lock(true);
     status = tkrzw::PolyDBM::RestoreDatabase(
         std::string(old_file_path.Get()), std::string(new_file_path.Get()),
         std::string(class_name.Get()), end_offset);
@@ -2410,35 +2402,20 @@ static PyObject* textfile_Search(PyTextFile* self, PyObject* pyargs) {
   }
   SoftString pattern(pypattern);
   SoftString mode(pymode);
-  std::vector<std::string> keys;
+  std::vector<std::string> lines;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
-  if (mode.Get() == "contain") {
+  {
     NativeLock lock(true);
-    status = tkrzw::SearchTextFile(
-        self->file, pattern.Get(), &keys, capacity, tkrzw::StrContains);
-  } else if (mode.Get() == "begin") {
-    NativeLock lock(true);
-    status = tkrzw::SearchTextFile(
-        self->file, pattern.Get(), &keys, capacity, tkrzw::StrBeginsWith);
-  } else if (mode.Get() == "end") {
-    NativeLock lock(true);
-    status = tkrzw::SearchTextFile(
-        self->file, pattern.Get(), &keys, capacity, tkrzw::StrEndsWith);
-  } else if (mode.Get() == "regex") {
-    NativeLock lock(true);
-    status = tkrzw::SearchTextFileRegex(
-        self->file, pattern.Get(), &keys, capacity, utf);
-  } else if (mode.Get() == "edit") {
-    NativeLock lock(true);
-    status = tkrzw::SearchTextFileEditDistance(
-        self->file, pattern.Get(), &keys, capacity, utf);
-  } else {
-    ThrowInvalidArguments("unknown mode");
+    status = tkrzw::SearchTextFileModal(
+        self->file, mode.Get(), pattern.Get(), &lines, capacity, utf);
+  }
+  if (status != tkrzw::Status::SUCCESS) {
+    ThrowStatusException(status);    
     return nullptr;
   }
-  PyObject* pyrv = PyList_New(keys.size());
-  for (size_t i = 0; i < keys.size(); i++) {
-    PyList_SET_ITEM(pyrv, i, CreatePyString(keys[i]));
+  PyObject* pyrv = PyList_New(lines.size());
+  for (size_t i = 0; i < lines.size(); i++) {
+    PyList_SET_ITEM(pyrv, i, CreatePyString(lines[i]));
   }
   return pyrv;
 }

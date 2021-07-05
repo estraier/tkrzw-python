@@ -530,6 +530,8 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(10, len(dbm.Search("regex", r"^\d+1$", 0, True)))
       self.assertEqual(3, len(dbm.Search("edit", "00000100", 3, True)))
       self.assertEqual(3, len(dbm.Search("edit", "00000100", 3, False)))
+      with self.assertRaises(StatusException):
+        self.assertRaises(dbm.Search("foo", "00000100", 3, False))
       self.assertEqual(Status.SUCCESS, dbm.Close())
 
   # Text tests.
@@ -555,6 +557,8 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(10, len(textfile.Search("regex", r"^\d+1$", 0, True)))
     self.assertEqual(3, len(textfile.Search("edit", "00000100", 3, True)))
     self.assertEqual(3, len(textfile.Search("edit", "00000100", 3, False)))
+    with self.assertRaises(StatusException):
+      self.assertRaises(textfile.Search("foo", "00000100", 3, False))
     self.assertEqual(Status.SUCCESS, textfile.Close())
 
 
