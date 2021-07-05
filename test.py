@@ -52,6 +52,7 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(-2 ** 63, Utility.INT64MIN)
     self.assertEqual(2 ** 63 - 1, Utility.INT64MAX)
     self.assertEqual(2 ** 64 - 1, Utility.UINT64MAX)
+    self.assertTrue(Utility.GetMemoryCapacity() > 0)
     self.assertTrue(Utility.GetMemoryUsage() > 0)
     self.assertTrue(3042090208, Utility.PrimaryHash("abc", (1 << 32) - 1))
     self.assertTrue(16973900370012003622, Utility.PrimaryHash("abc"))

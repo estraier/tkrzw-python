@@ -321,10 +321,14 @@ static bool DefineModule() {
   return true;
 }
 
+// Implementation of Utility.GetMemoryCapacity.
+static PyObject* utility_GetMemoryCapacity(PyObject* self) {
+  return PyLong_FromLongLong(tkrzw::GetMemoryCapacity());
+}
+
 // Implementation of Utility.GetMemoryUsage.
 static PyObject* utility_GetMemoryUsage(PyObject* self) {
-  const std::map<std::string, std::string> records = tkrzw::GetSystemInfo();
-  return PyLong_FromLongLong(tkrzw::StrToInt(tkrzw::SearchMap(records, "mem_rss", "-1")));
+  return PyLong_FromLongLong(tkrzw::GetMemoryUsage());
 }
 
 // Implementation of Utility.PrimaryHash.
@@ -397,6 +401,8 @@ static bool DefineUtility() {
   type_utility.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
   type_utility.tp_doc = "Library utilities.";
   static PyMethodDef methods[] = {
+    {"GetMemoryCapacity", (PyCFunction)utility_GetMemoryCapacity, METH_CLASS | METH_NOARGS,
+     "Gets the memory capacity of the platform."},
     {"GetMemoryUsage", (PyCFunction)utility_GetMemoryUsage, METH_CLASS | METH_NOARGS,
      "Gets the current memory usage of the process."},
     {"PrimaryHash", (PyCFunction)utility_PrimaryHash, METH_CLASS | METH_VARARGS,
@@ -1839,7 +1845,7 @@ static bool DefineDBM() {
      "Searches the database and get keys which match a pattern."},
     {"MakeIterator", (PyCFunction)dbm_MakeIterator, METH_NOARGS,
      "Makes an iterator for each record."},   
-    {"RestoreDatabase", (PyCFunction)dbm_RestoreDatabase, METH_VARARGS | METH_STATIC,
+    {"RestoreDatabase", (PyCFunction)dbm_RestoreDatabase, METH_CLASS | METH_VARARGS,
      "Makes an iterator for each record."},   
     {nullptr, nullptr, 0, nullptr},
   };

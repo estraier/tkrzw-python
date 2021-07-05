@@ -33,11 +33,20 @@ class Utility:
   """The maximum value of uint64."""
 
   @classmethod
+  def GetMemoryCapacity(cls):
+    """
+    Gets the memory capacity of the platform.
+
+    :return: The memory capacity of the platform in bytes, or -1 on failure.
+    """
+    pass  # native code
+
+  @classmethod
   def GetMemoryUsage(cls):
     """
     Gets the current memory usage of the process.
 
-    :return: The current memory usage of the process.
+    :return: The current memory usage of the process in bytes, or -1 on failure.
     """
     pass  # native code
 
@@ -648,7 +657,7 @@ class DBM:
     """
     pass  # native code
 
-  @staticmethod
+  @classmethod
   def RestoreDatabase(old_file_path, new_file_path, class_name="", end_offset=-1):
     """
     Restores a broken database as a new healthy database.
