@@ -418,6 +418,7 @@ static bool DefineUtility() {
   cls_utility = (PyObject*)&type_utility;
   Py_INCREF(cls_utility);
   if (!SetConstStr(cls_utility, "VERSION", tkrzw::PACKAGE_VERSION)) return false;
+  if (!SetConstStr(cls_utility, "OS_NAME", tkrzw::OS_NAME)) return false;
   if (!SetConstLong(cls_utility, "INT32MIN", (int64_t)tkrzw::INT32MIN)) return false;
   if (!SetConstLong(cls_utility, "INT32MAX", (int64_t)tkrzw::INT32MAX)) return false;
   if (!SetConstUnsignedLong(cls_utility, "UINT32MAX", (uint64_t)tkrzw::UINT32MAX)) return false;

@@ -46,14 +46,16 @@ class TestTkrzw(unittest.TestCase):
   # Utility tests.
   def testUtility(self):
     self.assertTrue(re.search(r"^\d+.\d+.\d+$", Utility.VERSION))
+    self.assertTrue(len(Utility.OS_NAME))
     self.assertEqual(-2 ** 31, Utility.INT32MIN)
     self.assertEqual(2 ** 31 - 1, Utility.INT32MAX)
     self.assertEqual(2 ** 32 - 1, Utility.UINT32MAX)
     self.assertEqual(-2 ** 63, Utility.INT64MIN)
     self.assertEqual(2 ** 63 - 1, Utility.INT64MAX)
     self.assertEqual(2 ** 64 - 1, Utility.UINT64MAX)
-    self.assertTrue(Utility.GetMemoryCapacity() > 0)
-    self.assertTrue(Utility.GetMemoryUsage() > 0)
+    if Utility.OS_NAME == "Linux":
+      self.assertTrue(Utility.GetMemoryCapacity() > 0)
+      self.assertTrue(Utility.GetMemoryUsage() > 0)
     self.assertTrue(3042090208, Utility.PrimaryHash("abc", (1 << 32) - 1))
     self.assertTrue(16973900370012003622, Utility.PrimaryHash("abc"))
     self.assertTrue(702176507, Utility.SecondaryHash("abc", (1 << 32) - 1))
