@@ -3,6 +3,7 @@
 	- Release: 0.1.11
 
 	- The RestoreDatabase method is added.
+	- TextFile is renamed to File.
 	- Compatibility to the C++ library: Tkrzw 0.9.38
 
 2021-06-02  Mikio Hirabayashi  <hirarin@gmail.com>

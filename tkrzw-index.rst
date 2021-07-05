@@ -9,7 +9,7 @@ Module and Classes
    tkrzw.StatusException
    tkrzw.DBM
    tkrzw.Iterator
-   tkrzw.TextFile
+   tkrzw.File
 
 Introduction
 ============

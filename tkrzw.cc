@@ -46,7 +46,7 @@ PyObject* cls_status;
 PyObject* cls_expt;
 PyObject* cls_dbm;
 PyObject* cls_iter;
-PyObject* cls_textfile;
+PyObject* cls_file;
 PyObject* obj_proc_noop;
 PyObject* obj_proc_remove;
 
@@ -81,8 +81,8 @@ struct PyIterator {
   bool concurrent;
 };
 
-// Python object of TextFile.
-struct PyTextFile {
+// Python object of File.
+struct PyFile {
   PyObject_HEAD
   tkrzw::File* file;
 };
@@ -2329,22 +2329,22 @@ static bool DefineIterator() {
   return true;
 }
 
-// Implementation of Textfile.new.
-static PyObject* textfile_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
-  PyTextFile* self = (PyTextFile*)pytype->tp_alloc(pytype, 0);
+// Implementation of File.new.
+static PyObject* file_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
+  PyFile* self = (PyFile*)pytype->tp_alloc(pytype, 0);
   if (!self) return nullptr;
   self->file = new tkrzw::MemoryMapParallelFile();
   return (PyObject*)self;
 }
 
-// Implementation of TextFile#dealloc.
-static void textfile_dealloc(PyTextFile* self) {
+// Implementation of File#dealloc.
+static void file_dealloc(PyFile* self) {
   delete self->file;
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-// Implementation of TextFile#__init__.
-static int textfile_init(PyTextFile* self, PyObject* pyargs, PyObject* pykwds) {
+// Implementation of File#__init__.
+static int file_init(PyFile* self, PyObject* pyargs, PyObject* pykwds) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc != 0) {
     ThrowInvalidArguments("too many arguments");
@@ -2353,18 +2353,18 @@ static int textfile_init(PyTextFile* self, PyObject* pyargs, PyObject* pykwds) {
   return 0;
 }
 
-// Implementation of TextFile#__repr__.
-static PyObject* textfile_repr(PyTextFile* self) {
-  return CreatePyString("<tkrzw.TextFile>");
+// Implementation of File#__repr__.
+static PyObject* file_repr(PyFile* self) {
+  return CreatePyString("<tkrzw.File>");
 }
 
-// Implementation of TextFile#__str__.
-static PyObject* textfile_str(PyTextFile* self) {
-  return CreatePyString("(TextFile)");
+// Implementation of File#__str__.
+static PyObject* file_str(PyFile* self) {
+  return CreatePyString("(File)");
 }
 
-// Implementation of TextFile#Open.
-static PyObject* textfile_Open(PyTextFile* self, PyObject* pyargs) {
+// Implementation of File#Open.
+static PyObject* file_Open(PyFile* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc != 1) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
@@ -2380,8 +2380,8 @@ static PyObject* textfile_Open(PyTextFile* self, PyObject* pyargs) {
   return CreatePyTkStatus(status);
 }
 
-// Implementation of TextFile#Close
-static PyObject* textfile_Close(PyTextFile* self) {
+// Implementation of File#Close
+static PyObject* file_Close(PyFile* self) {
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(true);
@@ -2390,8 +2390,8 @@ static PyObject* textfile_Close(PyTextFile* self) {
   return CreatePyTkStatus(status);
 }
 
-// Implementation of TextFile#Search.
-static PyObject* textfile_Search(PyTextFile* self, PyObject* pyargs) {
+// Implementation of File#Search.
+static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc < 2 || argc > 4) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
@@ -2427,36 +2427,36 @@ static PyObject* textfile_Search(PyTextFile* self, PyObject* pyargs) {
   return pyrv;
 }
 
-// Defines the TextFile class.
-static bool DefineTextFile() {
-  static PyTypeObject type_textfile = {PyVarObject_HEAD_INIT(nullptr, 0)};
+// Defines the File class.
+static bool DefineFile() {
+  static PyTypeObject type_file = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_textfile + zoff, 0, sizeof(type_textfile) - zoff);
-  type_textfile.tp_name = "tkrzw.TextFile";
-  type_textfile.tp_basicsize = sizeof(PyTextFile);
-  type_textfile.tp_itemsize = 0;
-  type_textfile.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_textfile.tp_doc = "Text file of line data.";
-  type_textfile.tp_new = textfile_new;
-  type_textfile.tp_dealloc = (destructor)textfile_dealloc;
-  type_textfile.tp_init = (initproc)textfile_init;
-  type_textfile.tp_repr = (unaryfunc)textfile_repr;
-  type_textfile.tp_str = (unaryfunc)textfile_str;
+  std::memset((char*)&type_file + zoff, 0, sizeof(type_file) - zoff);
+  type_file.tp_name = "tkrzw.File";
+  type_file.tp_basicsize = sizeof(PyFile);
+  type_file.tp_itemsize = 0;
+  type_file.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  type_file.tp_doc = "Text file of line data.";
+  type_file.tp_new = file_new;
+  type_file.tp_dealloc = (destructor)file_dealloc;
+  type_file.tp_init = (initproc)file_init;
+  type_file.tp_repr = (unaryfunc)file_repr;
+  type_file.tp_str = (unaryfunc)file_str;
   static PyMethodDef methods[] = {
-    {"Open", (PyCFunction)textfile_Open, METH_VARARGS,
+    {"Open", (PyCFunction)file_Open, METH_VARARGS,
      "Opens a text file."},
-    {"Close", (PyCFunction)textfile_Close, METH_NOARGS,
+    {"Close", (PyCFunction)file_Close, METH_NOARGS,
      "Closes the text file."},
-    {"Search", (PyCFunction)textfile_Search, METH_VARARGS,
+    {"Search", (PyCFunction)file_Search, METH_VARARGS,
      "Searches the text file and get lines which match a pattern."},
     {nullptr, nullptr, 0, nullptr}
   };
-  type_textfile.tp_methods = methods;
+  type_file.tp_methods = methods;
 
-  if (PyType_Ready(&type_textfile) != 0) return false;
-  cls_textfile = (PyObject*)&type_textfile;
-  Py_INCREF(cls_textfile);
-  if (PyModule_AddObject(mod_tkrzw, "TextFile", cls_textfile) != 0) return false;
+  if (PyType_Ready(&type_file) != 0) return false;
+  cls_file = (PyObject*)&type_file;
+  Py_INCREF(cls_file);
+  if (PyModule_AddObject(mod_tkrzw, "File", cls_file) != 0) return false;
   return true;
 }
 
@@ -2468,7 +2468,7 @@ PyMODINIT_FUNC PyInit_tkrzw() {
   if (!DefineStatusException()) return nullptr;
   if (!DefineDBM()) return nullptr;
   if (!DefineIterator()) return nullptr;
-  if (!DefineTextFile()) return nullptr;
+  if (!DefineFile()) return nullptr;
   return mod_tkrzw;
 }
 

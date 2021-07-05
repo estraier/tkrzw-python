@@ -604,6 +604,8 @@ class DBM:
 
     :param dest_path: A path of the output text file.
     :return: The result status.
+
+    As the exported text file is smaller than the database file, scanning the text file by the search method is often faster than scanning the whole database.
     """
     pass  # native code
 
@@ -856,16 +858,14 @@ class Iterator:
     pass  # native code
 
 
-class TextFile:
+class File:
   """
-  Text file of line data.
-
-  DBM#ExportKeysAsLines outputs keys of the database into a text file.  Scanning the text file is more efficient than scanning the whole database.
+  Generic file implementation.
   """
 
   def __init__(self):
     """
-    Initializes the text file object.
+    Initializes the file object.
     """
     pass  # native code
 
@@ -887,7 +887,7 @@ class TextFile:
 
   def Open(self, path):
     """
-    Opens a text file.
+    Opens a file.
 
     :param path: A path of the file.
     :return: The result status.
@@ -896,7 +896,7 @@ class TextFile:
 
   def Close(self):
     """
-    Closes the text file.
+    Closes the file.
 
     :return: The result status.
     """
@@ -904,7 +904,7 @@ class TextFile:
 
   def Search(self, mode, pattern, capacity=0, utf=False):
     """
-    Searches the text file and get lines which match a pattern.
+    Searches the file and get lines which match a pattern.
 
     :param mode: The search mode.  "contain" extracts lines containing the pattern.  "begin" extracts lines beginning with the pattern.  "end" extracts lines ending with the pattern.  "regex" extracts lines partially matches the pattern of a regular expression.  "edit" extracts lines whose edit distance to the pattern is the least.
     :param pattern: The pattern for matching.
