@@ -885,12 +885,28 @@ class File:
     """
     pass  # native code
 
-  def Open(self, path):
+  def Open(self, path, writable, **params):
     """
     Opens a file.
 
     :param path: A path of the file.
+    :param writable: If true, the file is writable.  If false, it is read-only.
+    :param params: Optional parameters.
     :return: The result status.
+
+    The optional parameters can include an option for the concurrency tuning.  By default, database operatins are done under the GIL (Global Interpreter Lock), which means that database operations are not done concurrently even if you use multiple threads.  If the "concurrent" parameter is true, database operations are done outside the GIL, which means that database operations can be done concurrently if you use multiple threads.  However, the downside is that swapping thread data is costly so the actual throughput is often worse in the concurrent mode than in the normal mode.  Therefore, the concurrent mode should be used only if the database is huge and it can cause blocking of threads in multi-thread usage.
+
+    The optional parameters can include options for the file opening operation.
+      - truncate (bool): True to truncate the file.
+      - no_create (bool): True to omit file creation.
+      - no_wait (bool): True to fail if the file is locked by another process.
+      - no_lock (bool): True to omit file locking.
+
+    The optional parameter "file" specifies the internal file implementation class.  The default file class is "MemoryMapAtomicFile".  The other supported classes are "StdFile", "MemoryMapAtomicFile", "PositionalParallelFile", and "PositionalAtomicFile".
+
+    For the file "PositionalParallelFile" and "PositionalAtomicFile", these optional parameters are supported.
+      - block_size (int): The block size to which all blocks should be aligned.
+      - access_options (str): Values separated by colon.  "direct" for direct I/O.  "sync" for synchrnizing I/O, "padding" for file size alignment by padding, "pagecache" for the mini page cache in the process.
     """
     pass  # native code
 

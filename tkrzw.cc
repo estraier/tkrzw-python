@@ -23,10 +23,11 @@
 #include "tkrzw_cmd_util.h"
 #include "tkrzw_dbm.h"
 #include "tkrzw_dbm_common_impl.h"
+#include "tkrzw_dbm_mmap.h"
 #include "tkrzw_dbm_poly.h"
 #include "tkrzw_dbm_shard.h"
 #include "tkrzw_file.h"
-#include "tkrzw_file_mmap.h"
+#include "tkrzw_file_poly.h"
 #include "tkrzw_file_util.h"
 #include "tkrzw_key_comparators.h"
 #include "tkrzw_lib_common.h"
@@ -84,7 +85,8 @@ struct PyIterator {
 // Python object of File.
 struct PyFile {
   PyObject_HEAD
-  tkrzw::File* file;
+  tkrzw::PolyFile* file;
+  bool concurrent;
 };
 
 // Creates a new string of Python.
@@ -2333,7 +2335,8 @@ static bool DefineIterator() {
 static PyObject* file_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
   PyFile* self = (PyFile*)pytype->tp_alloc(pytype, 0);
   if (!self) return nullptr;
-  self->file = new tkrzw::MemoryMapParallelFile();
+  self->file = new tkrzw::PolyFile();
+  self->concurrent = false;
   return (PyObject*)self;
 }
 
@@ -2364,18 +2367,42 @@ static PyObject* file_str(PyFile* self) {
 }
 
 // Implementation of File#Open.
-static PyObject* file_Open(PyFile* self, PyObject* pyargs) {
+static PyObject* file_Open(PyFile* self, PyObject* pyargs, PyObject* pykwds) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc != 1) {
+  if (argc != 2) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
   PyObject* pypath = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pywritable = PyTuple_GET_ITEM(pyargs, 1);
   SoftString path(pypath);
+  const bool writable = PyObject_IsTrue(pywritable);
+  bool concurrent = false;
+  int32_t open_options = 0;
+  std::map<std::string, std::string> params;
+  if (pykwds != nullptr) {
+    params = MapKeywords(pykwds);
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "concurrent", "false"))) {
+      concurrent = true;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "truncate", "false"))) {
+      open_options |= tkrzw::File::OPEN_TRUNCATE;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_create", "false"))) {
+      open_options |= tkrzw::File::OPEN_NO_CREATE;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_wait", "false"))) {
+      open_options |= tkrzw::File::OPEN_NO_WAIT;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_lock", "false"))) {
+      open_options |= tkrzw::File::OPEN_NO_LOCK;
+    }
+  }
+  self->concurrent = concurrent;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
-    NativeLock lock(true);
-    status = self->file->Open(std::string(path.Get()), false);
+    NativeLock lock(self->concurrent);
+    status = self->file->OpenAdvanced(std::string(path.Get()), writable, open_options, params);
   }
   return CreatePyTkStatus(status);
 }
@@ -2384,7 +2411,7 @@ static PyObject* file_Open(PyFile* self, PyObject* pyargs) {
 static PyObject* file_Close(PyFile* self) {
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
-    NativeLock lock(true);
+    NativeLock lock(self->concurrent);
     status = self->file->Close();
   }
   return CreatePyTkStatus(status);
@@ -2412,7 +2439,7 @@ static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
   std::vector<std::string> lines;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
-    NativeLock lock(true);
+    NativeLock lock(self->concurrent);
     status = tkrzw::SearchTextFileModal(
         self->file, mode.Get(), pattern.Get(), &lines, capacity, utf);
   }
@@ -2443,7 +2470,7 @@ static bool DefineFile() {
   type_file.tp_repr = (unaryfunc)file_repr;
   type_file.tp_str = (unaryfunc)file_str;
   static PyMethodDef methods[] = {
-    {"Open", (PyCFunction)file_Open, METH_VARARGS,
+    {"Open", (PyCFunction)file_Open, METH_VARARGS | METH_KEYWORDS,
      "Opens a text file."},
     {"Close", (PyCFunction)file_Close, METH_NOARGS,
      "Closes the text file."},
@@ -2452,7 +2479,6 @@ static bool DefineFile() {
     {nullptr, nullptr, 0, nullptr}
   };
   type_file.tp_methods = methods;
-
   if (PyType_Ready(&type_file) != 0) return false;
   cls_file = (PyObject*)&type_file;
   Py_INCREF(cls_file);
