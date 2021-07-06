@@ -23,10 +23,10 @@
 #include "tkrzw_cmd_util.h"
 #include "tkrzw_dbm.h"
 #include "tkrzw_dbm_common_impl.h"
-#include "tkrzw_dbm_mmap.h"
 #include "tkrzw_dbm_poly.h"
 #include "tkrzw_dbm_shard.h"
 #include "tkrzw_file.h"
+#include "tkrzw_file_mmap.h"
 #include "tkrzw_file_poly.h"
 #include "tkrzw_file_util.h"
 #include "tkrzw_key_comparators.h"
@@ -1655,7 +1655,7 @@ static PyObject* dbm_MakeIterator(PyDBM* self) {
 static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc < 2 || argc > 4) {
-    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
   SoftString old_file_path(PyTuple_GET_ITEM(pyargs, 0));
@@ -2358,12 +2358,53 @@ static int file_init(PyFile* self, PyObject* pyargs, PyObject* pykwds) {
 
 // Implementation of File#__repr__.
 static PyObject* file_repr(PyFile* self) {
-  return CreatePyString("<tkrzw.File>");
+  std::string class_name = "unknown";
+  auto* in_file = self->file->GetInternalFile();
+  if (in_file != nullptr) {
+    const auto& file_type = in_file->GetType();
+    if (file_type == typeid(tkrzw::StdFile)) {
+      class_name = "StdFile";
+    } else if (file_type == typeid(tkrzw::MemoryMapParallelFile)) {
+      class_name = "MemoryMapParallelFile";
+    } else if (file_type == typeid(tkrzw::MemoryMapAtomicFile)) {
+      class_name = "MemoryMapAtomicFile";
+    } else if (file_type == typeid(tkrzw::PositionalParallelFile)) {
+      class_name = "PositionalParallelFile";
+    } else if (file_type == typeid(tkrzw::PositionalAtomicFile)) {
+      class_name = "PositionalAtomicFile";
+    }
+  }
+  const std::string path = self->file->GetPathSimple();
+  const int64_t size = self->file->GetSizeSimple();
+  const std::string& str = tkrzw::StrCat(
+      "<tkrzw.File: class=", class_name,
+      " path=", tkrzw::StrEscapeC(path, true), " size=", size, ">");
+  return CreatePyString(str);
 }
 
 // Implementation of File#__str__.
 static PyObject* file_str(PyFile* self) {
-  return CreatePyString("(File)");
+  std::string class_name = "unknown";
+  auto* in_file = self->file->GetInternalFile();
+  if (in_file != nullptr) {
+    const auto& file_type = in_file->GetType();
+    if (file_type == typeid(tkrzw::StdFile)) {
+      class_name = "StdFile";
+    } else if (file_type == typeid(tkrzw::MemoryMapParallelFile)) {
+      class_name = "MemoryMapParallelFile";
+    } else if (file_type == typeid(tkrzw::MemoryMapAtomicFile)) {
+      class_name = "MemoryMapAtomicFile";
+    } else if (file_type == typeid(tkrzw::PositionalParallelFile)) {
+      class_name = "PositionalParallelFile";
+    } else if (file_type == typeid(tkrzw::PositionalAtomicFile)) {
+      class_name = "PositionalAtomicFile";
+    }
+  }
+  const std::string path = self->file->GetPathSimple();
+  const int64_t size = self->file->GetSizeSimple();
+  const std::string& str = tkrzw::StrCat(
+      "class=", class_name, " path=", tkrzw::StrEscapeC(path, true), " size=", size);
+  return CreatePyString(str);
 }
 
 // Implementation of File#Open.
@@ -2417,6 +2458,183 @@ static PyObject* file_Close(PyFile* self) {
   return CreatePyTkStatus(status);
 }
 
+static PyObject* file_Read(PyFile* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 3) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  const int64_t off = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 0)));
+  const int64_t size = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 1)));
+  PyObject* pystatus = nullptr;
+  if (argc > 2) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 2);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }
+  char* buf = new char[size];
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->file->Read(off, buf, size);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status != tkrzw::Status::SUCCESS) {
+    delete[] buf;
+    Py_RETURN_NONE;
+  }
+  PyObject* pydata = CreatePyBytes(std::string_view(buf, size));
+  delete[] buf;
+  return pydata;
+}
+
+static PyObject* file_ReadStr(PyFile* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 3) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  const int64_t off = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 0)));
+  const int64_t size = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 1)));
+  PyObject* pystatus = nullptr;
+  if (argc > 2) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 2);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }
+  char* buf = new char[size];
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->file->Read(off, buf, size);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status != tkrzw::Status::SUCCESS) {
+    delete[] buf;
+    Py_RETURN_NONE;
+  }
+  PyObject* pystr = CreatePyString(std::string_view(buf, size));
+  delete[] buf;
+  return pystr;
+}
+
+static PyObject* file_Write(PyFile* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  const int64_t off = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 0)));
+  PyObject* pydata = PyTuple_GET_ITEM(pyargs, 1);
+  SoftString data(pydata);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->file->Write(off, data.Get().data(), data.Get().size());
+  }
+  return CreatePyTkStatus(status);
+}
+
+static PyObject* file_Append(PyFile* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 2) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pydata = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString data(pydata);
+  PyObject* pystatus = nullptr;
+  if (argc > 2) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 1);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }
+  int64_t new_off = 0;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->file->Append(data.Get().data(), data.Get().size(), &new_off);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status != tkrzw::Status::SUCCESS) {
+    Py_RETURN_NONE;
+  }
+  return PyLong_FromLongLong(new_off);
+}
+
+static PyObject* file_Truncate(PyFile* self, PyObject* pyargs) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  const int64_t size = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 0)));
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->file->Truncate(size);
+  }
+  return CreatePyTkStatus(status);
+}
+
+static PyObject* file_Synchronize(PyFile* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 3) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyhard = PyTuple_GET_ITEM(pyargs, 0);
+  const bool hard = PyObject_IsTrue(pyhard);
+  int64_t off = 0;
+  int64_t size = 0;
+  if (argc > 1) {
+    off = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 1)));
+  }
+  if (argc > 2) {
+    size = std::max<int64_t>(0, PyObjToInt(PyTuple_GET_ITEM(pyargs, 2)));
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->file->Synchronize(hard, off, size);
+  }
+  return CreatePyTkStatus(status);
+}
+
+static PyObject* file_GetSize(PyFile* self) {
+  int64_t size = -1;
+  {
+    NativeLock lock(self->concurrent);
+    size = self->file->GetSizeSimple();
+  }
+  if (size >= 0) {
+    return PyLong_FromLongLong(size);
+  }
+  Py_RETURN_NONE;
+}
+
 // Implementation of File#Search.
 static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
@@ -2463,7 +2681,7 @@ static bool DefineFile() {
   type_file.tp_basicsize = sizeof(PyFile);
   type_file.tp_itemsize = 0;
   type_file.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_file.tp_doc = "Text file of line data.";
+  type_file.tp_doc = "Generic file implemenation.";
   type_file.tp_new = file_new;
   type_file.tp_dealloc = (destructor)file_dealloc;
   type_file.tp_init = (initproc)file_init;
@@ -2474,6 +2692,20 @@ static bool DefineFile() {
      "Opens a text file."},
     {"Close", (PyCFunction)file_Close, METH_NOARGS,
      "Closes the text file."},
+    {"Read", (PyCFunction)file_Read, METH_VARARGS,
+     "Reads data."},
+    {"ReadStr", (PyCFunction)file_ReadStr, METH_VARARGS,
+     "Reads data as a string."},
+    {"Write", (PyCFunction)file_Write, METH_VARARGS,
+     "Writes data."},
+    {"Append", (PyCFunction)file_Append, METH_VARARGS,
+     "Appends data at the end of the file."},
+    {"Truncate", (PyCFunction)file_Truncate, METH_VARARGS,
+     "Truncates the file."},
+    {"Synchronize", (PyCFunction)file_Synchronize, METH_VARARGS,
+     "Synchronizes the content of the file to the file system."},
+    {"GetSize", (PyCFunction)file_GetSize, METH_NOARGS,
+     "Gets the size of the file."},
     {"Search", (PyCFunction)file_Search, METH_VARARGS,
      "Searches the text file and get lines which match a pattern."},
     {nullptr, nullptr, 0, nullptr}

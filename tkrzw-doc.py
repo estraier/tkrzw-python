@@ -918,6 +918,80 @@ class File:
     """
     pass  # native code
 
+  def Read(self, off, size, status=None):
+    """
+    Reads data.
+    
+    :param off: The offset of a source region.
+    :param size: The size to be read.
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: The bytes value of the read data or None on failure.
+    """
+    pass  # native code
+
+  def ReadStr(self, off, size, status=None):
+    """
+    Reads data as a string.
+    
+    :param off: The offset of a source region.
+    :param size: The size to be read.
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: The string value of the read data or None on failure.
+    """
+    pass  # native code
+
+  def Write(self, off, data):
+    """
+    Writes data.
+
+    :param off: The offset of the destination region.
+    :param data: The data to write.
+    :return: The result status.
+    """
+    pass  # native code
+
+  def Append(self, data, status=None):
+    """
+    Appends data at the end of the file.
+
+    :param data: The data to write.
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: The offset at which the data has been put, or None on failure.
+    """
+    pass  # native code
+
+  def Truncate(self, size):
+    """
+    Truncates the file.
+
+    :param size: The new size of the file.
+    :return: The result status.
+
+    If the file is shrunk, data after the new file end is discarded.  If the file is expanded, null codes are filled after the old file end.
+    """
+    pass  # native code
+
+  def Synchronize(self, hard, off=0, size=0):
+    """
+    Synchronizes the content of the file to the file system.
+
+    :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+    :param off: The offset of the region to be synchronized.
+    :param size: The size of the region to be synchronized.  If it is zero, the length to the end of file is specified.
+    :return: The result status.
+
+    The pysical file size can be larger than the logical size in order to improve performance by reducing frequency of allocation.  Thus, you should call this function before accessing the file with external tools.
+    """
+    pass  # native code
+
+  def GetSize(self):
+    """
+    Gets the size of the file.
+
+    :return: The size of the file or None on failure.
+    """
+    pass  # native code
+
   def Search(self, mode, pattern, capacity=0, utf=False):
     """
     Searches the file and get lines which match a pattern.
