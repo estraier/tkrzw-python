@@ -861,6 +861,8 @@ class Iterator:
 class File:
   """
   Generic file implementation.
+
+  All operations except for "open" and "close" are thread-safe; Multiple threads can access the same file concurrently.  You can specify a concrete class when you call the "open" method.  Every opened file must be closed explicitly by the "close" method to avoid data corruption.
   """
 
   def __init__(self):
