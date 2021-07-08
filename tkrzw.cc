@@ -1600,7 +1600,7 @@ static PyObject* dbm_Search(PyDBM* self, PyObject* pyargs) {
     return nullptr;
   }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc < 2 || argc > 4) {
+  if (argc < 2 || argc > 3) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
@@ -1610,18 +1610,13 @@ static PyObject* dbm_Search(PyDBM* self, PyObject* pyargs) {
   if (argc > 2) {
     capacity = PyObjToInt(PyTuple_GET_ITEM(pyargs, 2));
   }
-  bool utf = false;
-  if (argc > 3) {
-    utf = PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 3));
-  }
   SoftString pattern(pypattern);
   SoftString mode(pymode);
   std::vector<std::string> keys;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = tkrzw::SearchDBMModal(
-        self->dbm, mode.Get(), pattern.Get(), &keys, capacity, utf);
+    status = tkrzw::SearchDBMModal(self->dbm, mode.Get(), pattern.Get(), &keys, capacity);
   }
   if (status != tkrzw::Status::SUCCESS) {
     ThrowStatusException(status);    
@@ -2638,7 +2633,7 @@ static PyObject* file_GetSize(PyFile* self) {
 // Implementation of File#Search.
 static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc < 2 || argc > 4) {
+  if (argc < 2 || argc > 3) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
@@ -2648,18 +2643,13 @@ static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
   if (argc > 2) {
     capacity = PyObjToInt(PyTuple_GET_ITEM(pyargs, 2));
   }
-  bool utf = false;
-  if (argc > 3) {
-    utf = PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 3));
-  }
   SoftString pattern(pypattern);
   SoftString mode(pymode);
   std::vector<std::string> lines;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = tkrzw::SearchTextFileModal(
-        self->file, mode.Get(), pattern.Get(), &lines, capacity, utf);
+    status = tkrzw::SearchTextFileModal(self->file, mode.Get(), pattern.Get(), &lines, capacity);
   }
   if (status != tkrzw::Status::SUCCESS) {
     ThrowStatusException(status);    

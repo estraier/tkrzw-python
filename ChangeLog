@@ -1,3 +1,10 @@
+2021-07-08  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.12
+
+	- Modify DBM::Search for the latest C++ API.
+	- Compatibility to the C++ library: Tkrzw 0.9.40
+
 2021-07-05  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.11

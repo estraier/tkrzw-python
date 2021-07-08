@@ -530,11 +530,11 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(10, len(dbm.Search("begin", "0000001")))
       self.assertEqual(10, len(dbm.Search("end", "1")))
       self.assertEqual(10, len(dbm.Search("regex", r"^\d+1$")))
-      self.assertEqual(10, len(dbm.Search("regex", r"^\d+1$", 0, True)))
-      self.assertEqual(3, len(dbm.Search("edit", "00000100", 3, True)))
-      self.assertEqual(3, len(dbm.Search("edit", "00000100", 3, False)))
+      self.assertEqual(10, len(dbm.Search("regex", r"^\d+1$", 0,)))
+      self.assertEqual(3, len(dbm.Search("edit", "00000100", 3)))
+      self.assertEqual(3, len(dbm.Search("editbin", "00000100", 3)))
       with self.assertRaises(StatusException):
-        self.assertRaises(dbm.Search("foo", "00000100", 3, False))
+        self.assertRaises(dbm.Search("foo", "00000100", 3))
       self.assertEqual(Status.SUCCESS, dbm.Close())
 
   # Text tests.
@@ -557,11 +557,11 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(10, len(file.Search("begin", "0000001")))
     self.assertEqual(10, len(file.Search("end", "1")))
     self.assertEqual(10, len(file.Search("regex", r"^\d+1$")))
-    self.assertEqual(10, len(file.Search("regex", r"^\d+1$", 0, True)))
-    self.assertEqual(3, len(file.Search("edit", "00000100", 3, True)))
-    self.assertEqual(3, len(file.Search("edit", "00000100", 3, False)))
+    self.assertEqual(10, len(file.Search("regex", r"^\d+1$", 0)))
+    self.assertEqual(3, len(file.Search("edit", "00000100", 3)))
+    self.assertEqual(3, len(file.Search("editbin", "00000100", 3)))
     with self.assertRaises(StatusException):
-      self.assertRaises(file.Search("foo", "00000100", 3, False))
+      self.assertRaises(file.Search("foo", "00000100", 3))
     self.assertEqual(Status.SUCCESS, file.Close())
 
   # File tests.
