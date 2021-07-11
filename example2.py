@@ -56,15 +56,15 @@ if status == tkrzw.Status.SUCCESS:
 dbm.Rebuild(align_pow=0, max_page_size=1024).OrDie()
 
 # Traverses records with an iterator.
-it = dbm.MakeIterator()
-it.First()
+iter = dbm.MakeIterator()
+iter.First()
 while True:
     status = tkrzw.Status()
-    record = it.GetStr(status)
+    record = iter.GetStr(status)
     if not status.IsOK():
         break
     print(record[0], record[1])
-    it.Next()
+    iter.Next()
 
 # Closes the database.
 dbm.Close()

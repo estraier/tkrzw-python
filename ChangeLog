@@ -1,3 +1,10 @@
+2021-07-12  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.13
+
+	- Add exporting methods to the flat record file.
+	- Compatibility to the C++ library: Tkrzw 0.9.42
+
 2021-07-08  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.12

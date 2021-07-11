@@ -1503,6 +1503,64 @@ static PyObject* dbm_Export(PyDBM* self, PyObject* pyargs) {
   return CreatePyTkStatus(status);
 }
 
+// Implementation of DBM#ExportRecordsToFlatRecords.
+static PyObject* dbm_ExportRecordsToFlatRecords(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyfile = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pyfile, cls_file)) {
+    ThrowInvalidArguments("the argument is not a File");
+    return nullptr;
+  }
+  PyFile* file = (PyFile*)pyfile;
+  if (file->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = tkrzw::ExportDBMRecordsToFlatRecords(self->dbm, file->file);
+  }
+  return CreatePyTkStatus(status);
+}
+
+// Implementation of DBM#ImportRecordsFromFlatRecords.
+static PyObject* dbm_ImportRecordsFromFlatRecords(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyfile = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pyfile, cls_file)) {
+    ThrowInvalidArguments("the argument is not a File");
+    return nullptr;
+  }
+  PyFile* file = (PyFile*)pyfile;
+  if (file->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = tkrzw::ImportDBMRecordsFromFlatRecords(self->dbm, file->file);
+  }
+  return CreatePyTkStatus(status);
+}
+
 // Implementation of DBM#ExportKeysAsLines.
 static PyObject* dbm_ExportKeysAsLines(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
@@ -1514,17 +1572,20 @@ static PyObject* dbm_ExportKeysAsLines(PyDBM* self, PyObject* pyargs) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
-  PyObject* pydest = PyTuple_GET_ITEM(pyargs, 0);
-  SoftString dest(pydest);
+  PyObject* pyfile = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pyfile, cls_file)) {
+    ThrowInvalidArguments("the argument is not a File");
+    return nullptr;
+  }
+  PyFile* file = (PyFile*)pyfile;
+  if (file->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    tkrzw::MemoryMapParallelFile file;
-    status = file.Open(std::string(dest.Get()), true, tkrzw::File::OPEN_TRUNCATE);
-    if (status == tkrzw::Status::SUCCESS) {
-      status |= tkrzw::ExportDBMKeysAsLines(self->dbm, &file);
-      status |= file.Close();
-    }
+    status = tkrzw::ExportDBMKeysAsLines(self->dbm, file->file);
   }
   return CreatePyTkStatus(status);
 }
@@ -1829,6 +1890,10 @@ static bool DefineDBM() {
      "Copies the content of the database file to another file."},
     {"Export", (PyCFunction)dbm_Export, METH_VARARGS,
      "Exports all records to another database."},
+    {"ExportRecordsToFlatRecords", (PyCFunction)dbm_ExportRecordsToFlatRecords, METH_VARARGS,
+     "Exports all records of a database to a flat record file."},
+    {"ImportRecordsFromFlatRecords", (PyCFunction)dbm_ImportRecordsFromFlatRecords, METH_VARARGS,
+     "Imports records to a database from a flat record file."},
     {"ExportKeysAsLines", (PyCFunction)dbm_ExportKeysAsLines, METH_VARARGS,
      "Exports the keys of all records as lines to a text file."},
     {"Inspect", (PyCFunction)dbm_Inspect, METH_NOARGS,

@@ -598,11 +598,31 @@ class DBM:
     """
     pass  # native code
 
-  def ExportKeysAsLines(self, dest_path):
+  def ExportRecordsToFlatRecords(self, file):
+    """
+    Exports all records of a database to a flat record file.
+
+    :param file: The file object to write records in.
+    :return: The result status.
+
+    A flat record file contains a sequence of binary records without any high level structure so it is useful as a intermediate file for data migration.
+    """
+    pass  # native code
+    
+  def ImportRecordsFromFlatRecords(self, file):
+    """
+    Imports records to a database from a flat record file.
+
+    :param file: The file object to read records from.
+    :return: The result status.
+    """
+    pass  # native code
+
+  def ExportKeysAsLines(self, file):
     """
     Exports the keys of all records as lines to a text file.
 
-    :param dest_path: A path of the output text file.
+    :param file: The file object to write keys in.
     :return: The result status.
 
     As the exported text file is smaller than the database file, scanning the text file by the search method is often faster than scanning the whole database.
