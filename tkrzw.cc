@@ -931,7 +931,7 @@ static PyObject* dbm_GetMulti(PyDBM* self, PyObject* pyargs) {
   std::map<std::string, std::string> records;
   {
     NativeLock lock(self->concurrent);
-    records = self->dbm->GetMulti(key_views);
+    self->dbm->GetMulti(key_views, &records);
   }
   PyObject* pyrv = PyDict_New();
   for (const auto& rec : records) {
@@ -957,15 +957,11 @@ static PyObject* dbm_GetMultiStr(PyDBM* self, PyObject* pyargs) {
     SoftString key(pykey);
     keys.emplace_back(std::string(key.Get()));
   }
-  std::vector<std::pair<std::string, std::string>> records;
+  std::vector<std::string_view> key_views(keys.begin(), keys.end());
+  std::map<std::string, std::string> records;
   {
     NativeLock lock(self->concurrent);
-    for (const auto& key : keys) {
-      std::string value;
-      if (self->dbm->Get(key, &value) == tkrzw::Status::SUCCESS) {
-        records.emplace_back(std::make_pair(key, value));
-      }
-    }
+    self->dbm->GetMulti(key_views, &records);
   }
   PyObject* pyrv = PyDict_New();
   for (const auto& rec : records) {
@@ -1009,10 +1005,12 @@ static PyObject* dbm_SetMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     return nullptr;
   }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc != 0) {
+  if (argc > 1) {
     ThrowInvalidArguments("too many arguments");
     return nullptr;
   }
+  PyObject* pyoverwrite = argc > 0 ? PyTuple_GET_ITEM(pyargs, 0) : Py_True;
+  const bool overwrite = PyObject_IsTrue(pyoverwrite);
   std::map<std::string, std::string> records;
   if (pykwds != nullptr) {
     records = MapKeywords(pykwds);
@@ -1025,7 +1023,7 @@ static PyObject* dbm_SetMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = self->dbm->SetMulti(record_views);
+    status = self->dbm->SetMulti(record_views, overwrite);
   }
   return CreatePyTkStatus(status);
 }
@@ -1209,6 +1207,36 @@ static PyObject* dbm_Append(PyDBM* self, PyObject* pyargs) {
   {
     NativeLock lock(self->concurrent);
     status = self->dbm->Append(key.Get(), value.Get(), delim.Get());
+  }
+  return CreatePyTkStatus(status);
+}
+
+// Implementation of DBM#AppendMulti.
+static PyObject* dbm_AppendMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments("too many arguments");
+    return nullptr;
+  }
+  PyObject* pydelim = argc > 0 ? PyTuple_GET_ITEM(pyargs, 0) : nullptr;
+  SoftString delim(pydelim == nullptr ? Py_None : pydelim);
+  std::map<std::string, std::string> records;
+  if (pykwds != nullptr) {
+    records = MapKeywords(pykwds);
+  }
+  std::map<std::string_view, std::string_view> record_views;
+  for (const auto& record : records) {
+    record_views.emplace(std::make_pair(
+        std::string_view(record.first), std::string_view(record.second)));
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->AppendMulti(record_views, delim.Get());
   }
   return CreatePyTkStatus(status);
 }
@@ -1866,6 +1894,8 @@ static bool DefineDBM() {
      "Removes a record and get the value."},
     {"Append", (PyCFunction)dbm_Append, METH_VARARGS,
      "Appends data at the end of a record of a key."},
+    {"AppendMulti", (PyCFunction)dbm_AppendMulti, METH_VARARGS | METH_KEYWORDS,
+     "Appends data to multiple records of the keyword arguments."},
     {"CompareExchange", (PyCFunction)dbm_CompareExchange, METH_VARARGS,
      "Compares the value of a record and exchanges if the condition meets."},
     {"Increment", (PyCFunction)dbm_Increment, METH_VARARGS,

@@ -423,11 +423,12 @@ class DBM:
     """
     pass  # native code
 
-  def SetMulti(self, **records):
+  def SetMulti(self, overwrite=True, **records):
     """
     Sets multiple records of the keyword arguments.
 
-    :param records: Records to store.  Existing records with the same keys are overwritten.
+    :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+    :param records: Records to store.
     :return: The result status.
     """
     pass  # native code
@@ -477,6 +478,18 @@ class DBM:
     :param key: The key of the record.
     :param value: The value to append.
     :param delim: The delimiter to put after the existing record.
+    :return: The result status.
+
+    If there's no existing record, the value is set without the delimiter.
+    """
+    pass  # native code
+
+  def AppendMulti(self, delim="", **records):
+    """
+    Appends data to multiple records of the keyword arguments.
+
+    :param delim: The delimiter to put after the existing record.
+    :param records: Records to append.  Existing records with the same keys are overwritten.
     :return: The result status.
 
     If there's no existing record, the value is set without the delimiter.
