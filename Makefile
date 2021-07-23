@@ -17,7 +17,8 @@ all :
 	@printf '#================================================================\n'
 
 clean :
-	rm -rf casket casket* *~ *.tmp *.tkh *.tkt *.tks *.so *.pyc build hoge moge tako ika
+	rm -rf casket casket* *~ *.tmp *.tkh *.tkt *.tks *.flat *.log *.so *.pyc build \
+	  hoge moge tako ika uni
 
 install :
 	$(PYTHON) setup.py install
