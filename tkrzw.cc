@@ -1648,17 +1648,26 @@ static PyObject* dbm_IsOpen(PyDBM* self) {
   Py_RETURN_TRUE;  
 }
 
+// Implementation of DBM#IsWritable.
+static PyObject* dbm_IsWritable(PyDBM* self) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const bool writable = self->dbm->IsWritable();
+  if (writable) {
+    Py_RETURN_TRUE;
+  }
+  Py_RETURN_FALSE;
+}
+
 // Implementation of DBM#IsHealthy.
 static PyObject* dbm_IsHealthy(PyDBM* self) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
     return nullptr;
   }
-  bool healthy = false;
-  {
-    NativeLock lock(self->concurrent);
-    healthy = self->dbm->IsHealthy();
-  }
+  const bool healthy = self->dbm->IsHealthy();
   if (healthy) {
     Py_RETURN_TRUE;
   }
@@ -1671,11 +1680,7 @@ static PyObject* dbm_IsOrdered(PyDBM* self) {
     ThrowInvalidArguments("not opened database");
     return nullptr;
   }
-  bool ordered = false;
-  {
-    NativeLock lock(self->concurrent);
-    ordered = self->dbm->IsOrdered();
-  }
+  const bool ordered = self->dbm->IsOrdered();
   if (ordered) {
     Py_RETURN_TRUE;
   }
@@ -1930,6 +1935,8 @@ static bool DefineDBM() {
      "Inspects the database."},
     {"IsOpen", (PyCFunction)dbm_IsOpen, METH_NOARGS,
      "Checks whether the database is open."},
+    {"IsWritable", (PyCFunction)dbm_IsWritable, METH_NOARGS,
+     "Checks whether the database is writable."},
     {"IsHealthy", (PyCFunction)dbm_IsHealthy, METH_NOARGS,
      "Checks whether the database condition is healthy."},
     {"IsOrdered", (PyCFunction)dbm_IsOrdered, METH_NOARGS,

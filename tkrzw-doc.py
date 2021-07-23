@@ -658,6 +658,14 @@ class DBM:
     """
     pass  # native code
 
+  def IsWritable(self):
+    """
+    Checks whether the database is writable.
+
+    :return: True if the database is writable, or false if not.
+    """
+    pass  # native code
+
   def IsHealthy(self):
     """
     Checks whether the database condition is healthy.
