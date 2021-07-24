@@ -65,7 +65,7 @@ def main(argv):
       rnd_state = random.Random(self.thid)
       for i in range(0, num_iterations):
         if is_random:
-          key_num = rnd_state.randint(1, num_iterations)
+          key_num = rnd_state.randint(1, num_iterations * num_threads)
         else:
           key_num = self.thid * num_iterations + i
         key = "{:08d}".format(key_num)
@@ -101,7 +101,7 @@ def main(argv):
       rnd_state = random.Random(self.thid)
       for i in range(0, num_iterations):
         if is_random:
-          key_num = rnd_state.randint(1, num_threads * num_iterations)
+          key_num = rnd_state.randint(1, num_iterations * num_threads)
         else:
           key_num = self.thid * num_iterations + i
         key = "{:08d}".format(key_num)
@@ -139,7 +139,7 @@ def main(argv):
       rnd_state = random.Random(self.thid)
       for i in range(0, num_iterations):
         if is_random:
-          key_num = rnd_state.randint(1, num_iterations)
+          key_num = rnd_state.randint(1, num_iterations * num_threads)
         else:
           key_num = self.thid * num_iterations + i
         key = "{:08d}".format(key_num)
