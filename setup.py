@@ -84,3 +84,5 @@ setup(name = package_name,
       author_email = package_author_email,
       url = package_url,
       ext_modules = [module])
+
+# END OF FILE
