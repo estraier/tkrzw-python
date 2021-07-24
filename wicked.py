@@ -125,7 +125,7 @@ def main(argv):
     threads.append(th)
   for th in threads:
     th.join()
-  status = dbm.Synchronize(False).OrDie()
+  dbm.Synchronize(False).OrDie()
   end_time = time.time()
   elapsed = end_time - start_time
   mem_usage = Utility.GetMemoryUsage() - start_mem_usage
