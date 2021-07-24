@@ -58,7 +58,7 @@ class Utility:
     Primary hash function for the hash database.
 
     :param data: The data to calculate the hash value for.
-    :param num_buckets: The number of buckets of the hash table.  If it is omitted, 1<<64 is set.
+    :param num_buckets: The number of buckets of the hash table.  If it is omitted, UINT64MAX is set.
     :return: The hash value.
     """
     pass  # native code
@@ -69,7 +69,7 @@ class Utility:
     Secondary hash function for sharding.
 
     :param data: The data to calculate the hash value for.
-    :param num_shards: The number of shards.  If it is omitted, 1<<64 is set.
+    :param num_shards: The number of shards.  If it is omitted, UINT64MAX is set.
     :return: The hash value.
     """
     pass  # native code
