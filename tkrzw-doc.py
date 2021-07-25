@@ -1036,6 +1036,14 @@ class File:
     """
     pass  # native code
 
+  def GetPath(self):
+    """
+    Gets the path of the file.
+
+    :return: The path of the file or None on failure.
+    """
+    pass  # native code
+
   def Search(self, mode, pattern, capacity=0):
     """
     Searches the file and get lines which match a pattern.

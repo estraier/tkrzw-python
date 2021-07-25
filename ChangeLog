@@ -3,6 +3,7 @@
 	- Release: 0.1.16
 
 	- Add PAGE_SIZE constant.
+	- Add File.GetPath method.
 	- Compatibility to the C++ library: Tkrzw 0.9.47
 
 2021-07-23  Mikio Hirabayashi  <hirarin@gmail.com>

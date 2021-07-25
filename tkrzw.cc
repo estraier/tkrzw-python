@@ -2733,6 +2733,19 @@ static PyObject* file_GetSize(PyFile* self) {
   Py_RETURN_NONE;
 }
 
+static PyObject* file_GetPath(PyFile* self) {
+  std::string path;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->file->GetPath(&path);
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    return CreatePyString(path);
+  }
+  Py_RETURN_NONE;
+}
+
 // Implementation of File#Search.
 static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
@@ -2799,6 +2812,8 @@ static bool DefineFile() {
      "Synchronizes the content of the file to the file system."},
     {"GetSize", (PyCFunction)file_GetSize, METH_NOARGS,
      "Gets the size of the file."},
+    {"GetPath", (PyCFunction)file_GetPath, METH_NOARGS,
+     "Gets the path of the file."},
     {"Search", (PyCFunction)file_Search, METH_VARARGS,
      "Searches the text file and get lines which match a pattern."},
     {nullptr, nullptr, 0, nullptr}

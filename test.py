@@ -590,6 +590,7 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(10, file.Append("FGH"))
     self.assertEqual(13, file.Append("IJ"))
     self.assertEqual(15, file.GetSize())
+    self.assertTrue(file.GetPath().find("casket.txt") > 0)
     self.assertEqual(Status.SUCCESS, file.Synchronize(False))
     self.assertEqual(Status.SUCCESS, file.Truncate(12))
     self.assertEqual(12, file.GetSize())
