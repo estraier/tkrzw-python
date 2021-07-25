@@ -21,6 +21,8 @@ class Utility:
   """The package version numbers."""
   OS_NAME = "unknown"
   """The recognized OS name."""
+  PAGE_SIZE = 4096
+  """The size of a memory page on the OS."""
   INT32MIN = -2 ** 31
   """The minimum value of int32."""
   INT32MAX = 2 ** 31 - 1

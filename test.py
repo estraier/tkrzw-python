@@ -47,6 +47,7 @@ class TestTkrzw(unittest.TestCase):
   def testUtility(self):
     self.assertTrue(re.search(r"^\d+.\d+.\d+$", Utility.VERSION))
     self.assertTrue(len(Utility.OS_NAME))
+    self.assertTrue(Utility.PAGE_SIZE > 0)
     self.assertEqual(-2 ** 31, Utility.INT32MIN)
     self.assertEqual(2 ** 31 - 1, Utility.INT32MAX)
     self.assertEqual(2 ** 32 - 1, Utility.UINT32MAX)
