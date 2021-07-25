@@ -1543,20 +1543,20 @@ static PyObject* dbm_ExportRecordsToFlatRecords(PyDBM* self, PyObject* pyargs) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
-  PyObject* pyfile = PyTuple_GET_ITEM(pyargs, 0);
-  if (!PyObject_IsInstance(pyfile, cls_file)) {
+  PyObject* pydest_file = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pydest_file, cls_file)) {
     ThrowInvalidArguments("the argument is not a File");
     return nullptr;
   }
-  PyFile* file = (PyFile*)pyfile;
-  if (file->file == nullptr) {
+  PyFile* dest_file = (PyFile*)pydest_file;
+  if (dest_file->file == nullptr) {
     ThrowInvalidArguments("not opened file");
     return nullptr;
   }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = tkrzw::ExportDBMRecordsToFlatRecords(self->dbm, file->file);
+    status = tkrzw::ExportDBMRecordsToFlatRecords(self->dbm, dest_file->file);
   }
   return CreatePyTkStatus(status);
 }
@@ -1572,20 +1572,20 @@ static PyObject* dbm_ImportRecordsFromFlatRecords(PyDBM* self, PyObject* pyargs)
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
-  PyObject* pyfile = PyTuple_GET_ITEM(pyargs, 0);
-  if (!PyObject_IsInstance(pyfile, cls_file)) {
+  PyObject* pysrc_file = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pysrc_file, cls_file)) {
     ThrowInvalidArguments("the argument is not a File");
     return nullptr;
   }
-  PyFile* file = (PyFile*)pyfile;
-  if (file->file == nullptr) {
+  PyFile* src_file = (PyFile*)pysrc_file;
+  if (src_file->file == nullptr) {
     ThrowInvalidArguments("not opened file");
     return nullptr;
   }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = tkrzw::ImportDBMRecordsFromFlatRecords(self->dbm, file->file);
+    status = tkrzw::ImportDBMRecordsFromFlatRecords(self->dbm, src_file->file);
   }
   return CreatePyTkStatus(status);
 }
@@ -1601,20 +1601,20 @@ static PyObject* dbm_ExportKeysAsLines(PyDBM* self, PyObject* pyargs) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
-  PyObject* pyfile = PyTuple_GET_ITEM(pyargs, 0);
-  if (!PyObject_IsInstance(pyfile, cls_file)) {
+  PyObject* pydest_file = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pydest_file, cls_file)) {
     ThrowInvalidArguments("the argument is not a File");
     return nullptr;
   }
-  PyFile* file = (PyFile*)pyfile;
-  if (file->file == nullptr) {
+  PyFile* dest_file = (PyFile*)pydest_file;
+  if (dest_file->file == nullptr) {
     ThrowInvalidArguments("not opened file");
     return nullptr;
   }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = tkrzw::ExportDBMKeysAsLines(self->dbm, file->file);
+    status = tkrzw::ExportDBMKeysAsLines(self->dbm, dest_file->file);
   }
   return CreatePyTkStatus(status);
 }
