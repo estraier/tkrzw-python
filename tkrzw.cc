@@ -1532,7 +1532,7 @@ static PyObject* dbm_Export(PyDBM* self, PyObject* pyargs) {
   return CreatePyTkStatus(status);
 }
 
-// Implementation of DBM#ExportRecordsToFlatRecords.
+// Implementation of DBM#ExportToFlatRecords.
 static PyObject* dbm_ExportRecordsToFlatRecords(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
@@ -1556,12 +1556,12 @@ static PyObject* dbm_ExportRecordsToFlatRecords(PyDBM* self, PyObject* pyargs) {
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = tkrzw::ExportDBMRecordsToFlatRecords(self->dbm, dest_file->file);
+    status = tkrzw::ExportDBMToFlatRecords(self->dbm, dest_file->file);
   }
   return CreatePyTkStatus(status);
 }
 
-// Implementation of DBM#ImportRecordsFromFlatRecords.
+// Implementation of DBM#ImportFromFlatRecords.
 static PyObject* dbm_ImportRecordsFromFlatRecords(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
@@ -1585,7 +1585,7 @@ static PyObject* dbm_ImportRecordsFromFlatRecords(PyDBM* self, PyObject* pyargs)
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = tkrzw::ImportDBMRecordsFromFlatRecords(self->dbm, src_file->file);
+    status = tkrzw::ImportDBMFromFlatRecords(self->dbm, src_file->file);
   }
   return CreatePyTkStatus(status);
 }

@@ -613,7 +613,7 @@ class DBM:
     """
     pass  # native code
 
-  def ExportRecordsToFlatRecords(self, dest_file):
+  def ExportToFlatRecords(self, dest_file):
     """
     Exports all records of a database to a flat record file.
 
@@ -624,7 +624,7 @@ class DBM:
     """
     pass  # native code
     
-  def ImportRecordsFromFlatRecords(self, src_file):
+  def ImportFromFlatRecords(self, src_file):
     """
     Imports records to a database from a flat record file.
 
