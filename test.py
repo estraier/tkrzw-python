@@ -551,10 +551,10 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.SUCCESS, dbm.Set(key, value, False))
     file = File()
     self.assertEqual(Status.SUCCESS, file.Open(dest_path, True, truncate=True))
-    self.assertEqual(Status.SUCCESS, dbm.ExportRecordsToFlatRecords(file))
+    self.assertEqual(Status.SUCCESS, dbm.ExportToFlatRecords(file))
     self.assertEqual(Status.SUCCESS, dbm.Clear());
     self.assertEqual(0, dbm.Count());
-    self.assertEqual(Status.SUCCESS, dbm.ImportRecordsFromFlatRecords(file))
+    self.assertEqual(Status.SUCCESS, dbm.ImportFromFlatRecords(file))
     self.assertEqual(100, dbm.Count());
     self.assertEqual(Status.SUCCESS, file.Close())
     file = File()

@@ -1533,7 +1533,7 @@ static PyObject* dbm_Export(PyDBM* self, PyObject* pyargs) {
 }
 
 // Implementation of DBM#ExportToFlatRecords.
-static PyObject* dbm_ExportRecordsToFlatRecords(PyDBM* self, PyObject* pyargs) {
+static PyObject* dbm_ExportToFlatRecords(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
     return nullptr;
@@ -1562,7 +1562,7 @@ static PyObject* dbm_ExportRecordsToFlatRecords(PyDBM* self, PyObject* pyargs) {
 }
 
 // Implementation of DBM#ImportFromFlatRecords.
-static PyObject* dbm_ImportRecordsFromFlatRecords(PyDBM* self, PyObject* pyargs) {
+static PyObject* dbm_ImportFromFlatRecords(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
     return nullptr;
@@ -1926,9 +1926,9 @@ static bool DefineDBM() {
      "Copies the content of the database file to another file."},
     {"Export", (PyCFunction)dbm_Export, METH_VARARGS,
      "Exports all records to another database."},
-    {"ExportRecordsToFlatRecords", (PyCFunction)dbm_ExportRecordsToFlatRecords, METH_VARARGS,
+    {"ExportToFlatRecords", (PyCFunction)dbm_ExportToFlatRecords, METH_VARARGS,
      "Exports all records of a database to a flat record file."},
-    {"ImportRecordsFromFlatRecords", (PyCFunction)dbm_ImportRecordsFromFlatRecords, METH_VARARGS,
+    {"ImportFromFlatRecords", (PyCFunction)dbm_ImportFromFlatRecords, METH_VARARGS,
      "Imports records to a database from a flat record file."},
     {"ExportKeysAsLines", (PyCFunction)dbm_ExportKeysAsLines, METH_VARARGS,
      "Exports the keys of all records as lines to a text file."},
