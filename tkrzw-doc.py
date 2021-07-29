@@ -154,6 +154,14 @@ class Status:
     """
     pass  # native code
 
+  def Join(self, rht):
+    """
+    Assigns the internal state from another status object only if the current state is success.
+
+    :param rhs: The status object.
+    """
+    pass  # native code
+
   def GetCode(self):
     """
     Gets the status code.

@@ -1,3 +1,9 @@
+2021-07-29  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.18
+
+	- Add Join method to Status.
+
 2021-07-28  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.17

@@ -511,7 +511,7 @@ static PyObject* status_Set(PyTkStatus* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc > 2) {
     ThrowInvalidArguments("too many arguments");
-    Py_RETURN_NONE;
+    return nullptr;
   }
   tkrzw::Status::Code code = tkrzw::Status::SUCCESS;
   if (argc > 0) {
@@ -525,6 +525,23 @@ static PyObject* status_Set(PyTkStatus* self, PyObject* pyargs) {
   } else {
     self->status->Set(code);
   }
+  Py_RETURN_NONE;
+}
+
+// Implementation of Status#Join.
+static PyObject* status_Join(PyTkStatus* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyrht = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pyrht, cls_status)) {
+    ThrowInvalidArguments("the argument is not a Status");
+    return nullptr;
+  }
+  PyTkStatus* rht = (PyTkStatus*)pyrht;
+  (*self->status) |= (*rht->status);
   Py_RETURN_NONE;
 }
 
@@ -574,6 +591,8 @@ static bool DefineStatus() {
   static PyMethodDef methods[] = {
     {"Set", (PyCFunction)status_Set, METH_VARARGS,
      "Set the code and the message."},
+    {"Join", (PyCFunction)status_Join, METH_VARARGS,
+     "Assigns the internal state only if the current state is success."},
     {"GetCode", (PyCFunction)status_GetCode, METH_NOARGS,
      "Gets the status code.."},
     {"GetMessage", (PyCFunction)status_GetMessage, METH_NOARGS,

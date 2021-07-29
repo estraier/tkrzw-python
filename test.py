@@ -77,10 +77,16 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual("NOT_FOUND_ERROR: foobar", str(status))
     self.assertTrue("foobar" in repr(status))
     self.assertFalse(status.IsOK())
+    s2 = Status(Status.NOT_IMPLEMENTED_ERROR, "void")
+    status.Join(s2);
+    self.assertEqual("NOT_FOUND_ERROR: foobar", str(status))
+    status.Set(Status.SUCCESS, "OK")
+    status.Join(s2);
+    self.assertEqual("NOT_IMPLEMENTED_ERROR: void", str(status))
     try:
       status.OrDie()
     except StatusException as e:
-      self.assertTrue("foobar" in str(e))
+      self.assertTrue("void" in str(e))
     else:
       self.fail("no exception")
 
