@@ -45,8 +45,10 @@ PyObject* mod_tkrzw;
 PyObject* cls_utility;
 PyObject* cls_status;
 PyObject* cls_expt;
+PyObject* cls_future;
 PyObject* cls_dbm;
 PyObject* cls_iter;
+PyObject* cls_asyncdbm;
 PyObject* cls_file;
 PyObject* obj_proc_noop;
 PyObject* obj_proc_remove;
@@ -60,6 +62,14 @@ struct PyUtility {
 struct PyTkStatus {
   PyObject_HEAD
   tkrzw::Status* status;
+};
+
+// Python object of Future.
+struct PyFuture {
+  PyObject_HEAD
+  tkrzw::StatusFuture* future;
+  bool concurrent;
+  bool is_str;
 };
 
 // Python ofject of StatusException.
@@ -79,6 +89,13 @@ struct PyDBM {
 struct PyIterator {
   PyObject_HEAD
   tkrzw::DBM::Iterator* iter;
+  bool concurrent;
+};
+
+// Python object of AsyncDBM.
+struct PyAsyncDBM {
+  PyObject_HEAD
+  tkrzw::AsyncDBM* async;
   bool concurrent;
 };
 
@@ -105,6 +122,27 @@ static PyObject* CreatePyTkStatus(const tkrzw::Status& status) {
   PyTkStatus* obj = (PyTkStatus*)pytype->tp_alloc(pytype, 0);
   if (!obj) return nullptr;
   obj->status = new tkrzw::Status(status);
+  return (PyObject*)obj;
+}
+
+// Creates a status object of Python, in moving context.
+static PyObject* CreatePyTkStatusMove(tkrzw::Status&& status) {
+  PyTypeObject* pytype = (PyTypeObject*)cls_status;
+  PyTkStatus* obj = (PyTkStatus*)pytype->tp_alloc(pytype, 0);
+  if (!obj) return nullptr;
+  obj->status = new tkrzw::Status(std::move(status));
+  return (PyObject*)obj;
+}
+
+// Creates a status future object of Python, in moving context.
+static PyObject* CreatePyFutureMove(
+    tkrzw::StatusFuture&& future, bool concurrent, bool is_str = false) {
+  PyTypeObject* pytype = (PyTypeObject*)cls_future;
+  PyFuture* obj = (PyFuture*)pytype->tp_alloc(pytype, 0);
+  if (!obj) return nullptr;
+  obj->future = new tkrzw::StatusFuture(std::move(future));
+  obj->concurrent = concurrent;
+  obj->is_str = is_str;
   return (PyObject*)obj;
 }
 
@@ -214,8 +252,29 @@ static int64_t PyObjToInt(PyObject* pyobj) {
     int64_t num = 0;
     PyObject* pylong = PyNumber_Long(pyobj);
     if (pylong) {
-      num = PyLong_AsLong(pyobj);
+      num = PyLong_AsLong(pylong);
       Py_DECREF(pylong);
+    }
+    return num;
+  }
+  return 0;
+}
+
+// Converts a numeric parameter to a double.
+static double PyObjToDouble(PyObject* pyobj) {
+  if (PyLong_Check(pyobj)) {
+    return PyLong_AsLong(pyobj);
+  } else if (PyFloat_Check(pyobj)) {
+    return PyFloat_AsDouble(pyobj);
+  } else if (PyUnicode_Check(pyobj) || PyBytes_Check(pyobj)) {
+    SoftString str(pyobj);
+    return tkrzw::StrToDouble(str.Get());
+  } else if (pyobj != Py_None) {
+    double num = 0;
+    PyObject* pyfloat = PyNumber_Float(pyobj);
+    if (pyfloat) {
+      num = PyFloat_AsDouble(pyfloat);
+      Py_DECREF(pyfloat);
     }
     return num;
   }
@@ -309,14 +368,14 @@ static std::vector<std::pair<std::string_view, std::string_view>> ExtractSVPairs
 
 // Defines the module.
 static bool DefineModule() {
-  static PyModuleDef module_def = { PyModuleDef_HEAD_INIT };
+  static PyModuleDef module_def = {PyModuleDef_HEAD_INIT};
   const size_t zoff = offsetof(PyModuleDef, m_name);
   std::memset((char*)&module_def + zoff, 0, sizeof(module_def) - zoff);
   module_def.m_name = "tkrzw";
   module_def.m_doc = "a set of implementations of DBM";
   module_def.m_size = -1;
   static PyMethodDef methods[] = {
-    { nullptr, nullptr, 0, nullptr },
+    {nullptr, nullptr, 0, nullptr},
   };
   module_def.m_methods = methods;
   mod_tkrzw = PyModule_Create(&module_def);
@@ -413,7 +472,7 @@ static bool DefineUtility() {
      "Secondary hash function for sharding."},
     {"EditDistanceLev", (PyCFunction)utility_EditDistanceLev, METH_CLASS | METH_VARARGS,
      "Gets the Levenshtein edit distance of two Unicode strings."},
-    { nullptr, nullptr, 0, nullptr },
+    {nullptr, nullptr, 0, nullptr},
   };
   type_utility.tp_methods = methods;
   if (PyType_Ready(&type_utility) != 0) return false;
@@ -601,7 +660,7 @@ static bool DefineStatus() {
      "Returns true if the status is success."},
     {"OrDie", (PyCFunction)status_OrDie, METH_NOARGS,
      "Raises a runtime error if the status is not success."},
-    { nullptr, nullptr, 0, nullptr },
+    {nullptr, nullptr, 0, nullptr},
   };
   type_status.tp_methods = methods;
   if (PyType_Ready(&type_status) != 0) return false;
@@ -702,9 +761,9 @@ static bool DefineStatusException() {
   type_expt.tp_repr = (unaryfunc)expt_repr;
   type_expt.tp_str = (unaryfunc)expt_str;
   static PyMethodDef expt_methods[] = {
-    { "GetStatus", (PyCFunction)expt_GetStatus, METH_NOARGS,
-      "Get the status object." },
-    { nullptr, nullptr, 0, nullptr }
+    {"GetStatus", (PyCFunction)expt_GetStatus, METH_NOARGS,
+     "Get the status object." },
+    {nullptr, nullptr, 0, nullptr}
   };
   type_expt.tp_methods = expt_methods;
   type_expt.tp_base = (PyTypeObject*)PyExc_RuntimeError;
@@ -712,6 +771,160 @@ static bool DefineStatusException() {
   cls_expt = (PyObject*)&type_expt;
   Py_INCREF(cls_expt);
   if (PyModule_AddObject(mod_tkrzw, "StatusException", cls_expt) != 0) return false;
+  return true;
+}
+
+// Implementation of Future.new.
+static PyObject* future_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
+  PyFuture* self = (PyFuture*)pytype->tp_alloc(pytype, 0);
+  if (!self) return nullptr;
+  self->future = nullptr;
+  self->concurrent = false;
+  self->is_str = false;
+  return (PyObject*)self;
+}
+
+// Implementation of Future#dealloc.
+static void future_dealloc(PyFuture* self) {
+  delete self->future;
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+// Implementation of Future#__init__.
+static int future_init(PyFuture* self, PyObject* pyargs, PyObject* pykwds) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 0) {
+    ThrowInvalidArguments("too many arguments");
+    return -1;
+  }
+  ThrowStatusException(tkrzw::Status(tkrzw::Status::NOT_IMPLEMENTED_ERROR));
+  return -1;
+}
+
+// Implementation of Future#__repr__.
+static PyObject* future_repr(PyFuture* self) {
+  const std::string& str = tkrzw::SPrintF("<tkrzw.Future: %p>", (void*)self->future);
+  return CreatePyString(str);
+}
+
+// Implementation of Future#__str__.
+static PyObject* future_str(PyFuture* self) {
+  const std::string& str = tkrzw::SPrintF("Future:%p", (void*)self->future);
+  return CreatePyString(str);
+}
+
+// Implementation of Future#Wait.
+static PyObject* future_Wait(PyFuture* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  const double timeout = PyObjToDouble(PyTuple_GET_ITEM(pyargs, 0));
+  bool ok = false;
+  {
+    NativeLock lock(self->concurrent);
+    ok = self->future->Wait(timeout);
+  }
+  if (ok) {
+    Py_RETURN_TRUE;
+  }
+  Py_RETURN_FALSE;
+}
+
+// Implementation of Future#Get.
+static PyObject* future_Get(PyFuture* self) {
+  const auto& type = self->future->GetExtraType();
+  if (type == typeid(tkrzw::Status)) {
+    return CreatePyTkStatusMove(self->future->Get());
+  }
+  if (type == typeid(std::pair<tkrzw::Status, std::string>)) {
+    const auto& result = self->future->GetString();
+    PyObject* pyrv = PyList_New(2);
+    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    if (self->is_str) {
+      PyList_SET_ITEM(pyrv, 1, CreatePyString(result.second));
+    } else {
+      PyList_SET_ITEM(pyrv, 1, CreatePyBytes(result.second));
+    }
+    return pyrv;
+  }
+  if (type == typeid(std::pair<tkrzw::Status, std::vector<std::string>>)) {
+    const auto& result = self->future->GetStringVector();
+    PyObject* pyrv = PyList_New(2);
+    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyObject* pylist = PyList_New(result.second.size());
+    for (size_t i = 0; i < result.second.size(); i++) {
+      if (self->is_str) {
+        PyList_SET_ITEM(pylist, i, CreatePyString(result.second[i]));
+      } else {
+        PyList_SET_ITEM(pylist, i, CreatePyBytes(result.second[i]));
+      }
+    }
+    PyList_SET_ITEM(pyrv, 1, pylist);
+    return pyrv;
+  }
+  if (type == typeid(std::pair<tkrzw::Status, std::map<std::string, std::string>>)) {
+    const auto& result = self->future->GetStringMap();
+    PyObject* pyrv = PyList_New(2);
+    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyObject* pydict = PyDict_New();
+    for (const auto& rec : result.second) {
+      if (self->is_str) {
+        PyObject* pykey = CreatePyString(rec.first);
+        PyObject* pyvalue = CreatePyString(rec.second);
+        PyDict_SetItem(pydict, pykey, pyvalue);
+        Py_DECREF(pyvalue);
+        Py_DECREF(pykey);
+      } else {
+        PyObject* pykey = CreatePyBytes(rec.first);
+        PyObject* pyvalue = CreatePyBytes(rec.second);
+        PyDict_SetItem(pydict, pykey, pyvalue);
+        Py_DECREF(pyvalue);
+        Py_DECREF(pykey);
+      }
+    }
+    PyList_SET_ITEM(pyrv, 1, pydict);
+    return pyrv;
+  }
+  if (type == typeid(std::pair<tkrzw::Status, int64_t>)) {
+    const auto& result = self->future->GetInteger();
+    PyObject* pyrv = PyList_New(2);
+    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyList_SET_ITEM(pyrv, 1, PyLong_FromLongLong(result.second));
+    return pyrv;
+  }
+  ThrowStatusException(tkrzw::Status(tkrzw::Status::NOT_IMPLEMENTED_ERROR));
+  return nullptr;
+}
+
+// Defines the Future class.
+static bool DefineFuture() {
+  static PyTypeObject type_future = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  const size_t zoff = offsetof(PyTypeObject, tp_name);
+  std::memset((char*)&type_future + zoff, 0, sizeof(type_future) - zoff);
+  type_future.tp_name = "tkrzw.Future";
+  type_future.tp_basicsize = sizeof(PyFuture);
+  type_future.tp_itemsize = 0;
+  type_future.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  type_future.tp_doc = "Future to monitor the result of asynchronous operations.";
+  type_future.tp_new = future_new;
+  type_future.tp_dealloc = (destructor)future_dealloc;
+  type_future.tp_init = (initproc)future_init;
+  type_future.tp_repr = (unaryfunc)future_repr;
+  type_future.tp_str = (unaryfunc)future_str;
+  static PyMethodDef future_methods[] = {
+    {"Wait", (PyCFunction)future_Wait, METH_VARARGS,
+     "Waits for the operation to be done."},
+    {"Get", (PyCFunction)future_Get, METH_NOARGS,
+     "Waits for the operation to be done and gets the result status." },
+    {nullptr, nullptr, 0, nullptr}
+  };
+  type_future.tp_methods = future_methods;
+  if (PyType_Ready(&type_future) != 0) return false;
+  cls_future = (PyObject*)&type_future;
+  Py_INCREF(cls_future);
+  if (PyModule_AddObject(mod_tkrzw, "Future", cls_future) != 0) return false;
   return true;
 }
 
@@ -841,7 +1054,7 @@ static PyObject* dbm_Open(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     delete self->dbm;
     self->dbm = nullptr;
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#Close.
@@ -855,7 +1068,7 @@ static PyObject* dbm_Close(PyDBM* self) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Close();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#Get.
@@ -1015,7 +1228,7 @@ static PyObject* dbm_Set(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Set(key.Get(), value.Get(), overwrite);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#SetMulti.
@@ -1045,7 +1258,7 @@ static PyObject* dbm_SetMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     NativeLock lock(self->concurrent);
     status = self->dbm->SetMulti(record_views, overwrite);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#SetAndGet.
@@ -1100,7 +1313,7 @@ static PyObject* dbm_SetAndGet(PyDBM* self, PyObject* pyargs) {
   }
   status |= impl_status;
   PyObject* pytuple = PyTuple_New(2);
-  PyTuple_SET_ITEM(pytuple, 0, CreatePyTkStatus(status));
+  PyTuple_SET_ITEM(pytuple, 0, CreatePyTkStatusMove(std::move(status)));
   if (hit) {
     PyObject* pyold_value = PyUnicode_Check(pyvalue) ?
         CreatePyString(old_value) : CreatePyBytes(old_value);
@@ -1130,7 +1343,7 @@ static PyObject* dbm_Remove(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Remove(key.Get());
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#RemoveMulti.
@@ -1152,7 +1365,7 @@ static PyObject* dbm_RemoveMulti(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->RemoveMulti(key_views);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#RemoveAndGet.
@@ -1194,8 +1407,9 @@ static PyObject* dbm_RemoveAndGet(PyDBM* self, PyObject* pyargs) {
   }
   status |= impl_status;
   PyObject* pytuple = PyTuple_New(2);
-  PyTuple_SET_ITEM(pytuple, 0, CreatePyTkStatus(status));
-  if (status == tkrzw::Status::SUCCESS) {
+  const bool success = status == tkrzw::Status::SUCCESS;
+  PyTuple_SET_ITEM(pytuple, 0, CreatePyTkStatusMove(std::move(status)));
+  if (success) {
     PyObject* pyold_value = PyUnicode_Check(pykey) ?
         CreatePyString(old_value) : CreatePyBytes(old_value);
     PyTuple_SET_ITEM(pytuple, 1, pyold_value);
@@ -1228,7 +1442,7 @@ static PyObject* dbm_Append(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Append(key.Get(), value.Get(), delim.Get());
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#AppendMulti.
@@ -1258,7 +1472,7 @@ static PyObject* dbm_AppendMulti(PyDBM* self, PyObject* pyargs, PyObject* pykwds
     NativeLock lock(self->concurrent);
     status = self->dbm->AppendMulti(record_views, delim.Get());
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#CompareExchange.
@@ -1293,7 +1507,7 @@ static PyObject* dbm_CompareExchange(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->CompareExchange(key.Get(), expected_view, desired_view);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#Increment.
@@ -1370,7 +1584,7 @@ static PyObject* dbm_CompareExchangeMulti(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->CompareExchangeMulti(expected, desired);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#Count.
@@ -1436,7 +1650,7 @@ static PyObject* dbm_Clear(PyDBM* self) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Clear();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#Rebuild.
@@ -1459,7 +1673,7 @@ static PyObject* dbm_Rebuild(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     NativeLock lock(self->concurrent);
     status = self->dbm->RebuildAdvanced(params);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#ShouldBeRebuilt.
@@ -1498,7 +1712,7 @@ static PyObject* dbm_Synchronize(PyDBM* self, PyObject* pyargs, PyObject* pykwds
     NativeLock lock(self->concurrent);
     status = self->dbm->SynchronizeAdvanced(hard, nullptr, params);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#CopyFileData.
@@ -1519,7 +1733,7 @@ static PyObject* dbm_CopyFileData(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->CopyFileData(std::string(dest.Get()));
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#Export.
@@ -1548,7 +1762,7 @@ static PyObject* dbm_Export(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Export(dest->dbm);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#ExportToFlatRecords.
@@ -1577,7 +1791,7 @@ static PyObject* dbm_ExportToFlatRecords(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = tkrzw::ExportDBMToFlatRecords(self->dbm, dest_file->file);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#ImportFromFlatRecords.
@@ -1606,7 +1820,7 @@ static PyObject* dbm_ImportFromFlatRecords(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = tkrzw::ImportDBMFromFlatRecords(self->dbm, src_file->file);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#ExportKeysAsLines.
@@ -1635,7 +1849,7 @@ static PyObject* dbm_ExportKeysAsLines(PyDBM* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = tkrzw::ExportDBMKeysAsLines(self->dbm, dest_file->file);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#Inspect.
@@ -1785,7 +1999,7 @@ static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
         std::string(old_file_path.Get()), std::string(new_file_path.Get()),
         std::string(class_name.Get()), end_offset);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of DBM#__len__.
@@ -2053,7 +2267,7 @@ static PyObject* iter_First(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->First();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#Last.
@@ -2063,7 +2277,7 @@ static PyObject* iter_Last(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Last();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#Jump.
@@ -2080,7 +2294,7 @@ static PyObject* iter_Jump(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->Jump(key.Get());
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#JumpLower.
@@ -2098,7 +2312,7 @@ static PyObject* iter_JumpLower(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->JumpLower(key.Get(), inclusive);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#JumpUpper.
@@ -2116,7 +2330,7 @@ static PyObject* iter_JumpUpper(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->JumpUpper(key.Get(), inclusive);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#Next.
@@ -2126,7 +2340,7 @@ static PyObject* iter_Next(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Next();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#Previous.
@@ -2136,7 +2350,7 @@ static PyObject* iter_Previous(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Previous();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#Get.
@@ -2355,7 +2569,7 @@ static PyObject* iter_Set(PyIterator* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->iter->Set(value.Get());
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#Remove.
@@ -2365,7 +2579,7 @@ static PyObject* iter_Remove(PyIterator* self) {
     NativeLock lock(self->concurrent);
     status = self->iter->Remove();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of Iterator#__next__.
@@ -2445,6 +2659,560 @@ static bool DefineIterator() {
   cls_iter = (PyObject*)&type_iter;
   Py_INCREF(cls_iter);
   if (PyModule_AddObject(mod_tkrzw, "Iterator", cls_iter) != 0) return false;
+  return true;
+}
+
+// Implementation of AsyncDBM.new.
+static PyObject* asyncdbm_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
+  PyAsyncDBM* self = (PyAsyncDBM*)pytype->tp_alloc(pytype, 0);
+  if (!self) return nullptr;
+  self->async = nullptr;
+  self->concurrent = false;
+  return (PyObject*)self;
+}
+
+// Implementation of AsyncDBM#dealloc.
+static void asyncdbm_dealloc(PyAsyncDBM* self) {
+  delete self->async;
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+// Implementation of AsyncDBM#__init__.
+static int asyncdbm_init(PyAsyncDBM* self, PyObject* pyargs, PyObject* pykwds) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");    
+    return -1;
+  }
+  PyObject* pydbm = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pydbm, cls_dbm)) {
+    ThrowInvalidArguments("the argument is not a DBM");
+    return -1;
+  }
+  PyDBM* dbm = (PyDBM*)pydbm;
+  if (dbm->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return -1;
+  }
+  PyObject* pynum_threads = PyTuple_GET_ITEM(pyargs, 1);
+  const int32_t num_threads = PyObjToInt(pynum_threads);
+  self->async = new tkrzw::AsyncDBM(dbm->dbm, num_threads);
+  self->concurrent = dbm->concurrent;
+  return 0;
+}
+
+// Implementation of AsyncDBM#__repr__.
+static PyObject* asyncdbm_repr(PyAsyncDBM* self) {
+  const std::string& str = tkrzw::SPrintF("<tkrzw.AsyncDBM: %p>", (void*)self->async);
+  return CreatePyString(str);
+}
+
+// Implementation of AsyncDBM#__str__.
+static PyObject* asyncdbm_str(PyAsyncDBM* self) {
+  const std::string& str = tkrzw::SPrintF("AsyncDBM:%p", (void*)self->async);
+  return CreatePyString(str);
+}
+
+// Implementation of AsyncDBM#Destruct.
+static PyObject* asyncdbm_Destruct(PyAsyncDBM* self) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  delete self->async;
+  self->async = nullptr;
+  Py_RETURN_NONE;  
+}
+
+// Implementation of AsyncDBM#Get.
+static PyObject* asyncdbm_Get(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  tkrzw::StatusFuture future(self->async->Get(key.Get()));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#GetStr.
+static PyObject* asyncdbm_GetStr(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  tkrzw::StatusFuture future(self->async->Get(key.Get()));
+  return CreatePyFutureMove(std::move(future), self->concurrent, true);
+}
+
+// Implementation of AsyncDBM#GetMulti.
+static PyObject* asyncdbm_GetMulti(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  std::vector<std::string> keys;
+  for (int32_t i = 0; i < argc; i++) {
+    PyObject* pykey = PyTuple_GET_ITEM(pyargs, i);
+    SoftString key(pykey);
+    keys.emplace_back(std::string(key.Get()));
+  }
+  std::vector<std::string_view> key_views(keys.begin(), keys.end());
+  tkrzw::StatusFuture future(self->async->GetMulti(keys));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#GetMultiStr.
+static PyObject* asyncdbm_GetMultiStr(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  std::vector<std::string> keys;
+  for (int32_t i = 0; i < argc; i++) {
+    PyObject* pykey = PyTuple_GET_ITEM(pyargs, i);
+    SoftString key(pykey);
+    keys.emplace_back(std::string(key.Get()));
+  }
+  std::vector<std::string_view> key_views(keys.begin(), keys.end());
+  tkrzw::StatusFuture future(self->async->GetMulti(keys));
+  return CreatePyFutureMove(std::move(future), self->concurrent, true);
+}
+
+// Implementation of AsyncDBM#Set.
+static PyObject* asyncdbm_Set(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 3) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 1);
+  const bool overwrite = argc > 2 ? PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 2)) : true;
+  SoftString key(pykey);
+  SoftString value(pyvalue);
+  tkrzw::StatusFuture future(self->async->Set(key.Get(), value.Get(), overwrite));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#SetMulti.
+static PyObject* asyncdbm_SetMulti(PyAsyncDBM* self, PyObject* pyargs, PyObject* pykwds) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments("too many arguments");
+    return nullptr;
+  }
+  PyObject* pyoverwrite = argc > 0 ? PyTuple_GET_ITEM(pyargs, 0) : Py_True;
+  const bool overwrite = PyObject_IsTrue(pyoverwrite);
+  std::map<std::string, std::string> records;
+  if (pykwds != nullptr) {
+    records = MapKeywords(pykwds);
+  }
+  std::map<std::string_view, std::string_view> record_views;
+  for (const auto& record : records) {
+    record_views.emplace(std::make_pair(
+        std::string_view(record.first), std::string_view(record.second)));
+  }
+  tkrzw::StatusFuture future(self->async->SetMulti(record_views, overwrite));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#Remove.
+static PyObject* asyncdbm_Remove(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  tkrzw::StatusFuture future(self->async->Remove(key.Get()));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#RemoveMulti.
+static PyObject* asyncdbm_RemoveMulti(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  std::vector<std::string> keys;
+  for (int32_t i = 0; i < argc; i++) {
+    PyObject* pykey = PyTuple_GET_ITEM(pyargs, i);
+    SoftString key(pykey);
+    keys.emplace_back(std::string(key.Get()));
+  }
+  std::vector<std::string_view> key_views(keys.begin(), keys.end());
+  tkrzw::StatusFuture future(self->async->RemoveMulti(key_views));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#Append.
+static PyObject* asyncdbm_Append(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 3) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 1);
+  PyObject* pydelim = argc > 2 ? PyTuple_GET_ITEM(pyargs, 2) : nullptr;
+  SoftString key(pykey);
+  SoftString value(pyvalue);
+  SoftString delim(pydelim == nullptr ? Py_None : pydelim);
+  tkrzw::StatusFuture future(self->async->Append(key.Get(), value.Get(), delim.Get()));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#AppendMulti.
+static PyObject* asyncdbm_AppendMulti(PyAsyncDBM* self, PyObject* pyargs, PyObject* pykwds) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments("too many arguments");
+    return nullptr;
+  }
+  PyObject* pydelim = argc > 0 ? PyTuple_GET_ITEM(pyargs, 0) : nullptr;
+  SoftString delim(pydelim == nullptr ? Py_None : pydelim);
+  std::map<std::string, std::string> records;
+  if (pykwds != nullptr) {
+    records = MapKeywords(pykwds);
+  }
+  std::map<std::string_view, std::string_view> record_views;
+  for (const auto& record : records) {
+    record_views.emplace(std::make_pair(
+        std::string_view(record.first), std::string_view(record.second)));
+  }
+  tkrzw::StatusFuture future(self->async->AppendMulti(record_views, delim.Get()));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#CompareExchange.
+static PyObject* asyncdbm_CompareExchange(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 3) {
+    ThrowInvalidArguments(argc < 3 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyexpected = PyTuple_GET_ITEM(pyargs, 1);
+  PyObject* pydesired = PyTuple_GET_ITEM(pyargs, 2);
+  SoftString key(pykey);
+  std::unique_ptr<SoftString> expected;
+  std::string_view expected_view;
+  if (pyexpected != Py_None) {
+    expected = std::make_unique<SoftString>(pyexpected);
+    expected_view = expected->Get();
+  }
+  std::unique_ptr<SoftString> desired;
+  std::string_view desired_view;
+  if (pydesired != Py_None) {
+    desired = std::make_unique<SoftString>(pydesired);
+    desired_view = desired->Get();
+  }
+  tkrzw::StatusFuture future(self->async->CompareExchange(
+      key.Get(), expected_view, desired_view));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#Increment.
+static PyObject* asyncdbm_Increment(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 3) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  int64_t inc = 1;
+  if (argc > 1) {
+    PyObject* pyinc = PyTuple_GET_ITEM(pyargs, 1);
+    inc = PyObjToInt(pyinc);
+  }
+  int64_t init = 0;
+  if (argc > 2) {
+    PyObject* pyinit = PyTuple_GET_ITEM(pyargs, 2);
+    init = PyObjToInt(pyinit);
+  }
+  tkrzw::StatusFuture future(self->async->Increment(key.Get(), inc, init));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#CompareExchangeMulti.
+static PyObject* asyncdbm_CompareExchangeMulti(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyexpected = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pydesired = PyTuple_GET_ITEM(pyargs, 1);
+  if (!PySequence_Check(pyexpected) || !PySequence_Check(pydesired)) {
+    ThrowInvalidArguments("parameters must be sequences of strings");
+    return nullptr;
+  }
+  std::vector<std::string> expected_ph;
+  const auto& expected = ExtractSVPairs(pyexpected, &expected_ph);
+  std::vector<std::string> desired_ph;
+  const auto& desired = ExtractSVPairs(pydesired, &desired_ph);
+  tkrzw::StatusFuture future(self->async->CompareExchangeMulti(expected, desired));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#Clear.
+static PyObject* asyncdbm_Clear(PyAsyncDBM* self) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  tkrzw::StatusFuture future(self->async->Clear());
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#Rebuild.
+static PyObject* asyncdbm_Rebuild(PyAsyncDBM* self, PyObject* pyargs, PyObject* pykwds) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 0) {
+    ThrowInvalidArguments("too many arguments");
+    return nullptr;
+  }
+  std::map<std::string, std::string> params;
+  if (pykwds != nullptr) {
+    params = MapKeywords(pykwds);
+  }
+  tkrzw::StatusFuture future(self->async->Rebuild(params));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#Synchronize.
+static PyObject* asyncdbm_Synchronize(PyAsyncDBM* self, PyObject* pyargs, PyObject* pykwds) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyhard = PyTuple_GET_ITEM(pyargs, 0);
+  const bool hard = PyObject_IsTrue(pyhard);
+  std::map<std::string, std::string> params;
+  if (pykwds != nullptr) {
+    params = MapKeywords(pykwds);
+  }
+  tkrzw::StatusFuture future(self->async->Synchronize(hard, nullptr, params));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#CopyFileData.
+static PyObject* asyncdbm_CopyFileData(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pydest = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString dest(pydest);
+  tkrzw::StatusFuture future(self->async->CopyFileData(std::string(dest.Get())));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#Export.
+static PyObject* asyncdbm_Export(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pydest = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pydest, cls_dbm)) {
+    ThrowInvalidArguments("the argument is not a DBM");
+    return nullptr;
+  }
+  PyDBM* dest = (PyDBM*)pydest;
+  if (dest->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  tkrzw::StatusFuture future(self->async->Export(dest->dbm));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#ExportToFlatRecords.
+static PyObject* asyncdbm_ExportToFlatRecords(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pydest_file = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pydest_file, cls_file)) {
+    ThrowInvalidArguments("the argument is not a File");
+    return nullptr;
+  }
+  PyFile* dest_file = (PyFile*)pydest_file;
+  if (dest_file->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
+  tkrzw::StatusFuture future(self->async->ExportToFlatRecords(dest_file->file));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#ImportFromFlatRecords.
+static PyObject* asyncdbm_ImportFromFlatRecords(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pysrc_file = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pysrc_file, cls_file)) {
+    ThrowInvalidArguments("the argument is not a File");
+    return nullptr;
+  }
+  PyFile* src_file = (PyFile*)pysrc_file;
+  if (src_file->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
+  tkrzw::StatusFuture future(self->async->ImportFromFlatRecords(src_file->file));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Defines the AsyncDBM class.
+static bool DefineAsyncDBM() {
+  static PyTypeObject type_asyncdbm = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  const size_t zoff = offsetof(PyTypeObject, tp_name);
+  std::memset((char*)&type_asyncdbm + zoff, 0, sizeof(type_asyncdbm) - zoff);
+  type_asyncdbm.tp_name = "tkrzw.AsyncDBM";
+  type_asyncdbm.tp_basicsize = sizeof(PyAsyncDBM);
+  type_asyncdbm.tp_itemsize = 0;
+  type_asyncdbm.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  type_asyncdbm.tp_doc = "Polymorphic database manager.";
+  type_asyncdbm.tp_new = asyncdbm_new;
+  type_asyncdbm.tp_dealloc = (destructor)asyncdbm_dealloc;
+  type_asyncdbm.tp_init = (initproc)asyncdbm_init;
+  type_asyncdbm.tp_repr = (unaryfunc)asyncdbm_repr;
+  type_asyncdbm.tp_str = (unaryfunc)asyncdbm_str;
+  static PyMethodDef methods[] = {
+    {"Destruct", (PyCFunction)asyncdbm_Destruct, METH_NOARGS,
+     "Destructs the asynchronous database adapter."},
+    {"Get", (PyCFunction)asyncdbm_Get, METH_VARARGS,
+     "Gets the value of a record of a key."},
+    {"GetStr", (PyCFunction)asyncdbm_GetStr, METH_VARARGS,
+     "Gets the value of a record of a key, as a string."},
+    {"GetMulti", (PyCFunction)asyncdbm_GetMulti, METH_VARARGS,
+     "Gets the values of multiple records of keys."},
+    {"GetMultiStr", (PyCFunction)asyncdbm_GetMultiStr, METH_VARARGS,
+     "Gets the values of multiple records of keys, as strings."},
+    {"Set", (PyCFunction)asyncdbm_Set, METH_VARARGS,
+     "Sets a record of a key and a value."},
+    {"SetMulti", (PyCFunction)asyncdbm_SetMulti, METH_VARARGS | METH_KEYWORDS,
+     "Sets multiple records specified by an initializer list of pairs of strings."},
+    {"Remove", (PyCFunction)asyncdbm_Remove, METH_VARARGS,
+     "Removes a record of a key."},
+    {"RemoveMulti", (PyCFunction)asyncdbm_RemoveMulti, METH_VARARGS,
+     "Removes records of keys."},
+    {"Append", (PyCFunction)asyncdbm_Append, METH_VARARGS,
+     "Appends data at the end of a record of a key."},
+    {"AppendMulti", (PyCFunction)asyncdbm_AppendMulti, METH_VARARGS | METH_KEYWORDS,
+     "Appends data to multiple records of the keyword arguments."},
+    {"CompareExchange", (PyCFunction)asyncdbm_CompareExchange, METH_VARARGS,
+     "Compares the value of a record and exchanges if the condition meets."},
+    {"Increment", (PyCFunction)asyncdbm_Increment, METH_VARARGS,
+     "Increments the numeric value of a record."},
+    {"CompareExchangeMulti", (PyCFunction)asyncdbm_CompareExchangeMulti, METH_VARARGS,
+     "Compares the values of records and exchanges if the condition meets."},
+    {"Clear", (PyCFunction)asyncdbm_Clear, METH_NOARGS,
+     "Removes all records."},
+    {"Rebuild", (PyCFunction)asyncdbm_Rebuild, METH_VARARGS | METH_KEYWORDS,
+     "Rebuilds the entire database."},
+    {"Synchronize", (PyCFunction)asyncdbm_Synchronize, METH_VARARGS | METH_KEYWORDS,
+     "Synchronizes the content of the database to the file system."},
+    {"CopyFileData", (PyCFunction)asyncdbm_CopyFileData, METH_VARARGS,
+     "Copies the content of the database file to another file."},
+    {"Export", (PyCFunction)asyncdbm_Export, METH_VARARGS,
+     "Exports all records to another database."},
+    {"ExportToFlatRecords", (PyCFunction)asyncdbm_ExportToFlatRecords, METH_VARARGS,
+     "Exports all records of a database to a flat record file."},
+    {"ImportFromFlatRecords", (PyCFunction)asyncdbm_ImportFromFlatRecords, METH_VARARGS,
+     "Imports records to a database from a flat record file."},
+    {nullptr, nullptr, 0, nullptr},
+  };
+  type_asyncdbm.tp_methods = methods;
+  if (PyType_Ready(&type_asyncdbm) != 0) return false;
+  cls_asyncdbm = (PyObject*)&type_asyncdbm;
+  Py_INCREF(cls_asyncdbm);
+  if (PyModule_AddObject(mod_tkrzw, "AsyncDBM", cls_asyncdbm) != 0) return false;
   return true;
 }
 
@@ -2562,7 +3330,7 @@ static PyObject* file_Open(PyFile* self, PyObject* pyargs, PyObject* pykwds) {
     NativeLock lock(self->concurrent);
     status = self->file->OpenAdvanced(std::string(path.Get()), writable, open_options, params);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of File#Close
@@ -2572,7 +3340,7 @@ static PyObject* file_Close(PyFile* self) {
     NativeLock lock(self->concurrent);
     status = self->file->Close();
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 static PyObject* file_Read(PyFile* self, PyObject* pyargs) {
@@ -2661,7 +3429,7 @@ static PyObject* file_Write(PyFile* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->file->Write(off, data.Get().data(), data.Get().size());
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 static PyObject* file_Append(PyFile* self, PyObject* pyargs) {
@@ -2713,7 +3481,7 @@ static PyObject* file_Truncate(PyFile* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->file->Truncate(size);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 static PyObject* file_Synchronize(PyFile* self, PyObject* pyargs) {
@@ -2737,7 +3505,7 @@ static PyObject* file_Synchronize(PyFile* self, PyObject* pyargs) {
     NativeLock lock(self->concurrent);
     status = self->file->Synchronize(hard, off, size);
   }
-  return CreatePyTkStatus(status);
+  return CreatePyTkStatusMove(std::move(status));
 }
 
 static PyObject* file_GetSize(PyFile* self) {
@@ -2851,8 +3619,10 @@ PyMODINIT_FUNC PyInit_tkrzw() {
   if (!DefineUtility()) return nullptr;
   if (!DefineStatus()) return nullptr;
   if (!DefineStatusException()) return nullptr;
+  if (!DefineFuture()) return nullptr;
   if (!DefineDBM()) return nullptr;
   if (!DefineIterator()) return nullptr;
+  if (!DefineAsyncDBM()) return nullptr;
   if (!DefineFile()) return nullptr;
   return mod_tkrzw;
 }

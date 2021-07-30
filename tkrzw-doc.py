@@ -195,6 +195,53 @@ class Status:
     pass  # native code
 
 
+class Future:
+  """
+  Future containing a status object and extra data.
+  """
+
+  def __init__(self):
+    """
+    The constructor cannot be called directly.  Use DBM#MakeIterator.
+    """
+    pass  # native code
+
+  def __repr__(self):
+    """
+    Returns A string representation of the object.
+
+    :return: The string representation of the object.
+    """
+    pass  # native code
+
+  def __str__(self):
+    """
+    Returns A string representation of the content.
+
+    :return: The string representation of the content.
+    """
+    pass  # native code
+
+  def Wait(self, timeout=-1):
+    """
+    Waits for the operation to be done.
+
+    :param timeout: The waiting time in seconds.  If it is negative, no timeout is set.
+    :return: True if the operation has done.  False if timeout occurs.
+    """
+    pass  # native code
+
+  def Get(self):
+    """
+    Waits for the operation to be done and gets the result status.
+
+    :return: The result status and extra data if any.  The existence and the type of extra data depends on the operation which makes the fugure.  For DBM#Get, a tuple of the status and the retrieved value is returned.  For DBM#Set and DBM#Remove, the status object itself is returned.
+
+    This can be called only once for a future object.
+    """
+    pass  # native code
+
+
 class StatusException(RuntimeError):
   """
   Exception to convey the status of operations.
@@ -439,7 +486,7 @@ class DBM:
 
     :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
     :param records: Records to store.
-    :return: The result status.
+    :return: The result status.  If there are records avoiding overwriting, DUPLICATION_ERROR is returned.
     """
     pass  # native code
 
@@ -598,6 +645,7 @@ class DBM:
 
     :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
     :param params: Optional parameters.
+    :return: The result status.
 
     Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
     """
@@ -904,6 +952,223 @@ class Iterator:
     Removes the current record.
 
     :return: The result status.
+    """
+    pass  # native code
+
+
+class AsyncDBM:
+  """
+  Asynchronous database manager adapter.
+
+  This class is a wrapper of DBM for asynchronous operations.  A task queue with a thread pool is used inside.  Every methods except for the constructor and the destructor are run by a thread in the thread pool and the result is set in the future oject of the return value.  The caller can ignore the future object if it is not necessary.  The Destruct method waits for all tasks to be done.  Therefore, the destructor should be called before the database is closed.
+  """
+  
+  def __init__(self, dbm, num_worker_threads):
+    """
+    Constructor.
+
+    :param dbm: A database object which has been opened.  The ownership is not taken.
+    :param num_worker_threads: The number of threads in the internal thread pool.
+    """
+    pass  # native code
+
+  def __repr__(self):
+    """
+    Returns A string representation of the object.
+
+    :return: The string representation of the object.
+    """
+    pass  # native code
+
+  def Destruct():
+    """
+    Destructs the asynchronous database adapter.
+
+    This method waits for all tasks to be done.
+    """
+
+  def Get(self, key):
+    """
+    Gets the value of a record of a key.
+
+    :param key: The key of the record.
+    :return: The future for the result status and the bytes value of the matching record.
+    """
+    pass  # native code
+
+  def GetStr(self, key):
+    """
+    Gets the value of a record of a key, as a string.
+
+    :param key: The key of the record.
+    :return: The future for the result status and the string value of the matching record.
+    """
+    pass  # native code
+
+  def GetMulti(self, *keys):
+    """
+    Gets the values of multiple records of keys.
+
+    :param keys: The keys of records to retrieve.
+    :return: The future for the result status and a map of retrieved records.  Keys which don't match existing records are ignored.
+    """
+    pass  # native code
+
+  def GetMultiStr(self, *keys):
+    """
+    Gets the values of multiple records of keys, as strings.
+
+    :param keys: The keys of records to retrieve.
+    :return: The future for the result status and a map of retrieved records.  Keys which don't match existing records are ignored.
+    """
+    pass  # native code
+
+  def Set(self, key, value, overwrite=True):
+    """
+    Sets a record of a key and a value.
+
+    :param key: The key of the record.
+    :param value: The value of the record.
+    :param overwrite: Whether to overwrite the existing value.  It can be omitted and then false is set.
+    :return: The future for the result status.  If overwriting is abandoned, DUPLICATION_ERROR is set.
+    """
+    pass  # native code
+
+  def SetMulti(self, overwrite=True, **records):
+    """
+    Sets multiple records of the keyword arguments.
+
+    :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+    :param records: Records to store.
+    :return: The future for the result status.  If overwriting is abandoned, DUPLICATION_ERROR is set.
+    """
+    pass  # native code
+
+  def Append(self, key, value, delim=""):
+    """
+    Appends data at the end of a record of a key.
+
+    :param key: The key of the record.
+    :param value: The value to append.
+    :param delim: The delimiter to put after the existing record.
+    :return: The future for the result status.
+
+    If there's no existing record, the value is set without the delimiter.
+    """
+    pass  # native code
+
+  def AppendMulti(self, delim="", **records):
+    """
+    Appends data to multiple records of the keyword arguments.
+
+    :param delim: The delimiter to put after the existing record.
+    :param records: Records to append.  Existing records with the same keys are overwritten.
+    :return: The future for the result status.
+
+    If there's no existing record, the value is set without the delimiter.
+    """
+    pass  # native code
+
+  def CompareExchange(self, key, expected, desired):
+    """
+    Compares the value of a record and exchanges if the condition meets.
+
+    :param key: The key of the record.
+    :param expected: The expected value.  If it is None, no existing record is expected.
+    :param desired: The desired value.  If it is None, the record is to be removed.
+    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is set.
+    """
+    pass  # native code
+
+  def Increment(self, key, inc=1, init=0):
+    """
+    Increments the numeric value of a record.
+
+    :param key: The key of the record.
+    :param inc: The incremental value.  If it is Utility.INT64MIN, the current value is not changed and a new record is not created.
+    :param init: The initial value.
+    :return: The future for the result status and The current value.
+
+    The record value is stored as an 8-byte big-endian integer.  Negative is also supported.
+    """
+    pass  # native code
+
+  def CompareExchangeMulti(self, expected, desired):
+    """
+    Compares the values of records and exchanges if the condition meets.
+
+    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.
+    :param desired: A sequence of pairs of the record keys and their desired values.  If the value is None, the record is to be removed.
+    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
+    """
+    pass  # native code
+
+  def Clear(self):
+    """
+    Removes all records.
+
+    :return: The future for the result status.
+    """
+    pass  # native code
+
+  def Rebuild(self, **params):
+    """
+    Rebuilds the entire database.
+
+    :param params: Optional parameters.
+    :return: The future for the result status.
+
+    The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+    """
+    pass  # native code
+
+  def Synchronize(self, hard, **params):
+    """
+    Synchronizes the content of the database to the file system.
+
+    :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+    :param params: Optional parameters.
+    :return: The future for the result status.
+
+    Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
+    """
+    pass  # native code
+
+  def CopyFileData(self, dest_path):
+    """
+    Copies the content of the database file to another file.
+
+    :param dest_path: A path to the destination file.
+    :return: The future for the result status.
+    """
+    pass  # native code
+
+  def Export(self, dest_dbm):
+    """
+    Exports all records to another database.
+
+    :param dest_dbm: The destination database.  The lefetime of the database object must last until the task finishes.
+    :return: The future for the result status.
+    """
+    pass  # native code
+
+  def ExportToFlatRecords(self, dest_file):
+    """
+    Exports all records of a database to a flat record file.
+
+    :param dest_file: The file object to write records in.  The lefetime of the database object must last until the task finishes.
+    :return: The future for the result status.
+
+    A flat record file contains a sequence of binary records without any high level structure so it is useful as a intermediate file for data migration.
+    """
+    pass  # native code
+    
+  def ImportFromFlatRecords(self, src_file):
+    """
+    Imports records to a database from a flat record file.
+
+    :param src_file: The file object to read records from.  The lefetime of the database object must last until the task finishes.
+    :return: The future for the result status.
     """
     pass  # native code
 

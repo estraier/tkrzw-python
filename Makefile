@@ -91,6 +91,7 @@ apidoc :
 	echo >> tmp-doc/out/conf.py.tmp
 	echo "autodoc_member_order = 'bysource'" >> tmp-doc/out/conf.py.tmp
 	echo "html_title = 'Python binding of Tkrzw'" >> tmp-doc/out/conf.py.tmp
+	echo "autoclass_content = 'both'" >> tmp-doc/out/conf.py.tmp
 	mv -f tmp-doc/out/conf.py.tmp tmp-doc/out/conf.py
 	cp -f tkrzw-index.rst tmp-doc/out/index.rst
 	cd tmp-doc/out ; $(MAKE) html

@@ -7,8 +7,10 @@ Module and Classes
    tkrzw.Utility
    tkrzw.Status
    tkrzw.StatusException
+   tkrzw.Future
    tkrzw.DBM
    tkrzw.Iterator
+   tkrzw.AsyncDBM
    tkrzw.File
 
 Introduction
