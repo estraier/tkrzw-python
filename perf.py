@@ -14,13 +14,14 @@
 #--------------------------------------------------------------------------------------------------
 
 import argparse
-import sys
+import asyncio
 import os
 import re
 import random
-import time
-import threading
 import shutil
+import sys
+import threading
+import time
 
 from tkrzw import *
 
@@ -34,6 +35,7 @@ def main(argv):
   ap.add_argument("--params", default="")
   ap.add_argument("--iter", type=int, default=10000)
   ap.add_argument("--threads", type=int, default=1)
+  ap.add_argument("--async_threads", type=int, default=0)
   ap.add_argument("--random", action='store_true', default=False)
   args = ap.parse_args(argv)
   path = args.path
@@ -57,6 +59,9 @@ def main(argv):
   start_mem_usage = Utility.GetMemoryUsage()
   dbm = DBM()
   dbm.Open(path, True, **open_params).OrDie()
+  adbm = None
+  if args.async_threads > 0:
+    adbm = AsyncDBM(dbm, args.async_threads)
   class Setter(threading.Thread):
     def __init__(self, thid):
       threading.Thread.__init__(self)
@@ -69,7 +74,10 @@ def main(argv):
         else:
           key_num = self.thid * num_iterations + i
         key = "{:08d}".format(key_num)
-        dbm.Set(key, key).OrDie()
+        if adbm:
+          adbm.Set(key, key).Get().OrDie()
+        else:
+          dbm.Set(key, key).OrDie()
         seq = i + 1
         if self.thid == 0 and seq % (num_iterations / 500) == 0:
           print(".", end="")
@@ -105,8 +113,11 @@ def main(argv):
         else:
           key_num = self.thid * num_iterations + i
         key = "{:08d}".format(key_num)
-        status = Status()
-        value = dbm.Get(key, status)
+        if adbm:
+          status, value = adbm.Get(key).Get()
+        else:
+          status = Status()
+          value = dbm.Get(key, status)
         if status != Status.SUCCESS and status != Status.NOT_FOUND_ERROR:
           raise RuntimeError("Get failed: " + str(status))
         seq = i + 1
@@ -143,7 +154,10 @@ def main(argv):
         else:
           key_num = self.thid * num_iterations + i
         key = "{:08d}".format(key_num)
-        status = dbm.Remove(key)
+        if adbm:
+          status = adbm.Remove(key).Get()
+        else:
+          status = dbm.Remove(key)
         if status != Status.SUCCESS and status != Status.NOT_FOUND_ERROR:
           raise RuntimeError("Remove failed: " + str(status))
         seq = i + 1

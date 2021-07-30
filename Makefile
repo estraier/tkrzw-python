@@ -60,9 +60,9 @@ check :
 	$(RUNENV) $(PYTHON) perf.py --params "dbm=baby,key_comparator=decimal" \
 	  --iter 20000 --threads 5 --random
 	$(RUNENV) $(PYTHON) perf.py --params "dbm=stdhash,num_buckets=100000" \
-	  --iter 20000 --threads 5 --random
+	  --iter 20000 --threads 5 --async_threads 2 --random
 	$(RUNENV) $(PYTHON) perf.py --params "dbm=stdtree" \
-	  --iter 20000 --threads 5 --random
+	  --iter 20000 --threads 5 --async_threads 2 --random
 	$(RUNENV) $(PYTHON) wicked.py --path casket.tkh --params "num_buckets=100000" \
 	  --iter 20000 --threads 5
 	$(RUNENV) $(PYTHON) wicked.py --path casket.tkt --params "key_comparator=decimal" \
