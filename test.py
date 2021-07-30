@@ -13,6 +13,7 @@
 # and limitations under the License.
 #--------------------------------------------------------------------------------------------------
 
+import asyncio
 import math
 import os
 import random
@@ -665,6 +666,10 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(Status.SUCCESS, adbm.ImportFromFlatRecords(copy_file).Get())
     self.assertEqual(1, dbm.Count())
     self.assertEqual(Status.SUCCESS, copy_file.Close())
+    async def async_main():
+      await adbm.Set("hello", "good-bye", True)
+    asyncio.run(async_main())
+    self.assertEqual("good-bye", dbm.GetStr("hello"))
     adbm.Destruct()
     self.assertEqual(Status.SUCCESS, dbm.Close())
 

@@ -760,12 +760,12 @@ static bool DefineStatusException() {
   type_expt.tp_init = (initproc)expt_init;
   type_expt.tp_repr = (unaryfunc)expt_repr;
   type_expt.tp_str = (unaryfunc)expt_str;
-  static PyMethodDef expt_methods[] = {
+  static PyMethodDef methods[] = {
     {"GetStatus", (PyCFunction)expt_GetStatus, METH_NOARGS,
      "Get the status object." },
     {nullptr, nullptr, 0, nullptr}
   };
-  type_expt.tp_methods = expt_methods;
+  type_expt.tp_methods = methods;
   type_expt.tp_base = (PyTypeObject*)PyExc_RuntimeError;
   if (PyType_Ready(&type_expt) != 0) return false;
   cls_expt = (PyObject*)&type_expt;
@@ -811,6 +811,28 @@ static PyObject* future_repr(PyFuture* self) {
 static PyObject* future_str(PyFuture* self) {
   const std::string& str = tkrzw::SPrintF("Future:%p", (void*)self->future);
   return CreatePyString(str);
+}
+
+// Implementation of Future#__iter__.
+static PyObject* future_iter(PyFuture* self) {
+  Py_INCREF(self);  
+  return (PyObject*)self;
+}
+
+// Implementation of Future#__next__.
+static PyObject* future_iternext(PyIterator* self) {
+  PyErr_SetString(PyExc_StopIteration, "end of iteration");
+  return nullptr;
+}
+
+// Implementation of Future#__await__.
+static PyObject* future_await(PyFuture* self) {
+  {
+    NativeLock lock(self->concurrent);
+    self->future->Wait();
+  }
+  Py_INCREF(self);  
+  return (PyObject*)self;
 }
 
 // Implementation of Future#Wait.
@@ -913,14 +935,35 @@ static bool DefineFuture() {
   type_future.tp_init = (initproc)future_init;
   type_future.tp_repr = (unaryfunc)future_repr;
   type_future.tp_str = (unaryfunc)future_str;
-  static PyMethodDef future_methods[] = {
+  static PyMethodDef methods[] = {
     {"Wait", (PyCFunction)future_Wait, METH_VARARGS,
      "Waits for the operation to be done."},
     {"Get", (PyCFunction)future_Get, METH_NOARGS,
      "Waits for the operation to be done and gets the result status." },
     {nullptr, nullptr, 0, nullptr}
   };
-  type_future.tp_methods = future_methods;
+  type_future.tp_methods = methods;
+
+  
+  static PyAsyncMethods async_methods;
+  std::memset(&async_methods, 0, sizeof(async_methods));
+  async_methods.am_await = (unaryfunc)future_await;
+
+  
+  type_future.tp_as_async = &async_methods;
+
+
+  static PyMappingMethods map_methods;
+  std::memset(&map_methods, 0, sizeof(map_methods));
+  type_future.tp_iter = (getiterfunc)future_iter;
+  type_future.tp_iternext = (iternextfunc)future_iternext;
+  type_future.tp_as_mapping = &map_methods;
+
+  
+
+
+
+  
   if (PyType_Ready(&type_future) != 0) return false;
   cls_future = (PyObject*)&type_future;
   Py_INCREF(cls_future);
@@ -2184,12 +2227,12 @@ static bool DefineDBM() {
     {nullptr, nullptr, 0, nullptr},
   };
   type_dbm.tp_methods = methods;
-  static PyMappingMethods type_dbm_map;
-  std::memset(&type_dbm_map, 0, sizeof(type_dbm_map));
-  type_dbm_map.mp_length = (lenfunc)dbm_len;
-  type_dbm_map.mp_subscript = (binaryfunc)dbm_getitem;
-  type_dbm_map.mp_ass_subscript = (objobjargproc)dbm_setitem;
-  type_dbm.tp_as_mapping = &type_dbm_map;
+  static PyMappingMethods map_methods;
+  std::memset(&map_methods, 0, sizeof(map_methods));
+  map_methods.mp_length = (lenfunc)dbm_len;
+  map_methods.mp_subscript = (binaryfunc)dbm_getitem;
+  map_methods.mp_ass_subscript = (objobjargproc)dbm_setitem;
+  type_dbm.tp_as_mapping = &map_methods;
   type_dbm.tp_iter = (getiterfunc)dbm_iter;
   if (PyType_Ready(&type_dbm) != 0) return false;
   cls_dbm = (PyObject*)&type_dbm;

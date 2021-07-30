@@ -145,6 +145,47 @@ The following code is a more complex example.  Resources of DBM and Iterator are
  # Closes the database.
  dbm.Close()
 
+The following code is a typical example of coroutine usage.  The AsyncDBM class manages a thread pool and handles database operations in the background in parallel.  Each Method of AsyncDBM returns a Future object to monitor the result.  The Future class implements the awaitable protocol so that the instance is usable with the "await" sentence to await the operation while yielding the execution ownership.::
+
+ import asyncio
+ import tkrzw
+
+ async def main():
+     # Prepares the database.
+     dbm = tkrzw.DBM()
+     dbm.Open("casket.tkh", True, truncate=True, num_buckets=100)
+
+     # Prepares the asynchronous adapter with 4 worker threads.
+     adbm = tkrzw.AsyncDBM(dbm, 4)
+
+     # Execute the Set method asynchronously.
+     future = adbm.Set("hello", "world")
+     # Does something in the foreground.
+     print("Setting a record")
+     # Checks the result after awaiting the Set operation.
+     # Calling Future#Get doesn't yield the coroutine ownership.
+     status = future.Get()
+     if status != tkrzw.Status.SUCCESS:
+         print("ERROR: " + str(status))
+
+     # Execute the Get method asynchronously.
+     future = adbm.GetStr("hello")
+     # Does something in the foreground.
+     print("Getting a record")
+     # Awaits the operation while yielding the execution ownership.
+     await future
+     status, value = future.Get()
+     if status == tkrzw.Status.SUCCESS:
+         print("VALUE: " + value)
+
+     # Release the asynchronous adapter.
+     adbm.Destruct()
+
+     # Closes the database.
+     dbm.Close()
+
+ asyncio.run(main())
+
 Indices and tables
 ==================
 

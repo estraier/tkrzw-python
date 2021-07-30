@@ -198,6 +198,8 @@ class Status:
 class Future:
   """
   Future containing a status object and extra data.
+
+  This class implements the awaitable protocol so an instance is usable with the "await" sentence.
   """
 
   def __init__(self):
@@ -285,6 +287,7 @@ class DBM:
   Polymorphic database manager.
 
   All operations except for Open and Close are thread-safe; Multiple threads can access the same database concurrently.  You can specify a data structure when you call the Open method.  Every opened database must be closed explicitly by the Close method to avoid data corruption.
+  This class implements the iterable protocol so an instance is usable with "for-in" loop.
   """
 
   def __init__(self):
