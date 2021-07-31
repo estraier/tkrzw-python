@@ -131,7 +131,7 @@ class Status:
 
   def __repr__(self):
     """
-    Returns A string representation of the object.
+    Returns a string representation of the object.
 
     :return: The string representation of the object.
     """
@@ -139,7 +139,7 @@ class Status:
 
   def __str__(self):
     """
-    Returns A string representation of the content.
+    Returns a string representation of the content.
 
     :return: The string representation of the content.
     """
@@ -218,9 +218,17 @@ class Future:
 
   def __str__(self):
     """
-    Returns A string representation of the content.
+    Returns a string representation of the content.
 
     :return: The string representation of the content.
+    """
+    pass  # native code
+
+  def __await__(self):
+    """
+    Waits for the operation to be done and returns an iterator.
+
+    :return: The iterator which stops immediately.
     """
     pass  # native code
 
@@ -1090,7 +1098,7 @@ class AsyncDBM:
     :param key: The key of the record.
     :param inc: The incremental value.  If it is Utility.INT64MIN, the current value is not changed and a new record is not created.
     :param init: The initial value.
-    :return: The future for the result status and The current value.
+    :return: The future for the result status and the current value.
 
     The record value is stored as an 8-byte big-endian integer.  Negative is also supported.
     """
@@ -1175,6 +1183,16 @@ class AsyncDBM:
     """
     pass  # native code
 
+  def Search(self, mode, pattern, capacity=0):
+    """
+    Searches the database and get keys which match a pattern.
+
+    :param mode: The search mode.  "contain" extracts keys containing the pattern.  "begin" extracts keys beginning with the pattern.  "end" extracts keys ending with the pattern.  "regex" extracts keys partially matches the pattern of a regular expression.  "edit" extracts keys whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts keys whose edit distance to the binary pattern is the least.
+    :param pattern: The pattern for matching.
+    :param capacity: The maximum records to obtain.  0 means unlimited.
+    :return: The future for the result status and a list of keys matching the condition.
+    """
+    pass  # native code
 
 class File:
   """

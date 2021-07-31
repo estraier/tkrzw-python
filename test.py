@@ -668,8 +668,15 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(Status.SUCCESS, copy_file.Close())
     async def async_main():
       await adbm.Set("hello", "good-bye", True)
+      await adbm.Set("hi", "bye", True)
+      await adbm.Set("chao", "adios", True)
     asyncio.run(async_main())
     self.assertEqual("good-bye", dbm.GetStr("hello"))
+    search_result = adbm.Search("begin", "h").Get()
+    self.assertEqual(Status.SUCCESS, search_result[0])
+    self.assertEqual(2, len(search_result[1]))
+    self.assertTrue("hello" in search_result[1])
+    self.assertTrue("hi" in search_result[1])
     adbm.Destruct()
     self.assertEqual(Status.SUCCESS, dbm.Close())
 

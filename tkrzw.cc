@@ -173,6 +173,13 @@ class NativeLock final {
     }
   }
 
+  void Release() {
+    if (thstate_) {
+      PyEval_RestoreThread(thstate_);
+    }
+    thstate_ = nullptr;
+  }
+
  private:
   PyThreadState* thstate_;
 };
@@ -820,7 +827,7 @@ static PyObject* future_iter(PyFuture* self) {
 }
 
 // Implementation of Future#__next__.
-static PyObject* future_iternext(PyIterator* self) {
+static PyObject* future_iternext(PyFuture* self) {
   PyErr_SetString(PyExc_StopIteration, "end of iteration");
   return nullptr;
 }
@@ -831,6 +838,7 @@ static PyObject* future_await(PyFuture* self) {
     NativeLock lock(self->concurrent);
     self->future->Wait();
   }
+  self->concurrent = false;
   Py_INCREF(self);  
   return (PyObject*)self;
 }
@@ -849,6 +857,7 @@ static PyObject* future_Wait(PyFuture* self, PyObject* pyargs) {
     ok = self->future->Wait(timeout);
   }
   if (ok) {
+    self->concurrent = false;
     Py_RETURN_TRUE;
   }
   Py_RETURN_FALSE;
@@ -858,7 +867,10 @@ static PyObject* future_Wait(PyFuture* self, PyObject* pyargs) {
 static PyObject* future_Get(PyFuture* self) {
   const auto& type = self->future->GetExtraType();
   if (type == typeid(tkrzw::Status)) {
-    return CreatePyTkStatusMove(self->future->Get());
+    NativeLock lock(self->concurrent);
+    tkrzw::Status status = self->future->Get();
+    lock.Release();
+    return CreatePyTkStatusMove(std::move(status));
   }
   if (type == typeid(std::pair<tkrzw::Status, std::string>)) {
     const auto& result = self->future->GetString();
@@ -872,7 +884,9 @@ static PyObject* future_Get(PyFuture* self) {
     return pyrv;
   }
   if (type == typeid(std::pair<tkrzw::Status, std::vector<std::string>>)) {
+    NativeLock lock(self->concurrent);
     const auto& result = self->future->GetStringVector();
+    lock.Release();
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     PyObject* pylist = PyList_New(result.second.size());
@@ -887,7 +901,9 @@ static PyObject* future_Get(PyFuture* self) {
     return pyrv;
   }
   if (type == typeid(std::pair<tkrzw::Status, std::map<std::string, std::string>>)) {
+    NativeLock lock(self->concurrent);
     const auto& result = self->future->GetStringMap();
+    lock.Release();
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     PyObject* pydict = PyDict_New();
@@ -910,7 +926,9 @@ static PyObject* future_Get(PyFuture* self) {
     return pyrv;
   }
   if (type == typeid(std::pair<tkrzw::Status, int64_t>)) {
+    NativeLock lock(self->concurrent);
     const auto& result = self->future->GetInteger();
+    lock.Release();
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     PyList_SET_ITEM(pyrv, 1, PyLong_FromLongLong(result.second));
@@ -943,27 +961,15 @@ static bool DefineFuture() {
     {nullptr, nullptr, 0, nullptr}
   };
   type_future.tp_methods = methods;
-
-  
   static PyAsyncMethods async_methods;
   std::memset(&async_methods, 0, sizeof(async_methods));
   async_methods.am_await = (unaryfunc)future_await;
-
-  
   type_future.tp_as_async = &async_methods;
-
-
   static PyMappingMethods map_methods;
   std::memset(&map_methods, 0, sizeof(map_methods));
   type_future.tp_iter = (getiterfunc)future_iter;
   type_future.tp_iternext = (iternextfunc)future_iternext;
   type_future.tp_as_mapping = &map_methods;
-
-  
-
-
-
-  
   if (PyType_Ready(&type_future) != 0) return false;
   cls_future = (PyObject*)&type_future;
   Py_INCREF(cls_future);
@@ -3191,6 +3197,29 @@ static PyObject* asyncdbm_ImportFromFlatRecords(PyAsyncDBM* self, PyObject* pyar
   return CreatePyFutureMove(std::move(future), self->concurrent);
 }
 
+// Implementation of AsyncDBM#Search.
+static PyObject* asyncdbm_Search(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 3) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pymode = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pypattern = PyTuple_GET_ITEM(pyargs, 1);
+  int32_t capacity = 0;
+  if (argc > 2) {
+    capacity = PyObjToInt(PyTuple_GET_ITEM(pyargs, 2));
+  }
+  SoftString pattern(pypattern);
+  SoftString mode(pymode);
+  tkrzw::StatusFuture future(self->async->SearchModal(mode.Get(), pattern.Get(), capacity));
+  return CreatePyFutureMove(std::move(future), self->concurrent, true);
+}
+
 // Defines the AsyncDBM class.
 static bool DefineAsyncDBM() {
   static PyTypeObject type_asyncdbm = {PyVarObject_HEAD_INIT(nullptr, 0)};
@@ -3249,6 +3278,8 @@ static bool DefineAsyncDBM() {
      "Exports all records of a database to a flat record file."},
     {"ImportFromFlatRecords", (PyCFunction)asyncdbm_ImportFromFlatRecords, METH_VARARGS,
      "Imports records to a database from a flat record file."},
+    {"Search", (PyCFunction)asyncdbm_Search, METH_VARARGS,
+     "Searches the database and get keys which match a pattern."},
     {nullptr, nullptr, 0, nullptr},
   };
   type_asyncdbm.tp_methods = methods;
