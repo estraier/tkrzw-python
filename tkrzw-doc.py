@@ -245,7 +245,7 @@ class Future:
     """
     Waits for the operation to be done and gets the result status.
 
-    :return: The result status and extra data if any.  The existence and the type of extra data depends on the operation which makes the fugure.  For DBM#Get, a tuple of the status and the retrieved value is returned.  For DBM#Set and DBM#Remove, the status object itself is returned.
+    :return: The result status and extra data if any.  The existence and the type of extra data depends on the operation which makes the future.  For DBM#Get, a tuple of the status and the retrieved value is returned.  For DBM#Set and DBM#Remove, the status object itself is returned.
 
     This can be called only once for a future object.
     """
