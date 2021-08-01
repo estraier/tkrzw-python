@@ -1167,7 +1167,7 @@ class AsyncDBM:
     """
     Exports all records of a database to a flat record file.
 
-    :param dest_file: The file object to write records in.  The lefetime of the database object must last until the task finishes.
+    :param dest_file: The file object to write records in.  The lefetime of the file object must last until the task finishes.
     :return: The future for the result status.
 
     A flat record file contains a sequence of binary records without any high level structure so it is useful as a intermediate file for data migration.
@@ -1178,7 +1178,7 @@ class AsyncDBM:
     """
     Imports records to a database from a flat record file.
 
-    :param src_file: The file object to read records from.  The lefetime of the database object must last until the task finishes.
+    :param src_file: The file object to read records from.  The lefetime of the file object must last until the task finishes.
     :return: The future for the result status.
     """
     pass  # native code
