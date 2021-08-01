@@ -873,7 +873,9 @@ static PyObject* future_Get(PyFuture* self) {
     return CreatePyTkStatusMove(std::move(status));
   }
   if (type == typeid(std::pair<tkrzw::Status, std::string>)) {
+    NativeLock lock(self->concurrent);
     const auto& result = self->future->GetString();
+    lock.Release();
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     if (self->is_str) {

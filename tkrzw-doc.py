@@ -971,14 +971,14 @@ class AsyncDBM:
   """
   Asynchronous database manager adapter.
 
-  This class is a wrapper of DBM for asynchronous operations.  A task queue with a thread pool is used inside.  Every methods except for the constructor and the destructor are run by a thread in the thread pool and the result is set in the future oject of the return value.  The caller can ignore the future object if it is not necessary.  The Destruct method waits for all tasks to be done.  Therefore, the destructor should be called before the database is closed.
+  This class is a wrapper of DBM for asynchronous operations.  A task queue with a thread pool is used inside.  Every method except for the constructor and the destructor is run by a thread in the thread pool and the result is set in the future oject of the return value.  The caller can ignore the future object if it is not necessary.  The Destruct method waits for all tasks to be done.  Therefore, the destructor should be called before the database is closed.
   """
   
   def __init__(self, dbm, num_worker_threads):
     """
-    Constructor.
+    Sets up the task queue.
 
-    :param dbm: A database object which has been opened.  The ownership is not taken.
+    :param dbm: A database object which has been opened.
     :param num_worker_threads: The number of threads in the internal thread pool.
     """
     pass  # native code
