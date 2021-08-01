@@ -846,11 +846,11 @@ static PyObject* future_await(PyFuture* self) {
 // Implementation of Future#Wait.
 static PyObject* future_Wait(PyFuture* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc != 1) {
-    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+  if (argc > 1) {
+    ThrowInvalidArguments("too many arguments");
     return nullptr;
   }
-  const double timeout = PyObjToDouble(PyTuple_GET_ITEM(pyargs, 0));
+  const double timeout = argc > 0 ? PyObjToDouble(PyTuple_GET_ITEM(pyargs, 0)) : -1.0;
   bool ok = false;
   {
     NativeLock lock(self->concurrent);
