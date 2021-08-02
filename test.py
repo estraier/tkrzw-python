@@ -680,7 +680,6 @@ class TestTkrzw(unittest.TestCase):
     self.assertTrue("hi" in search_result[1])
     adbm.Destruct()
     self.assertEqual(Status.SUCCESS, dbm.Close())
-
     
   # File tests.
   def testFile(self):
