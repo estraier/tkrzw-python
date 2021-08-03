@@ -870,12 +870,16 @@ static PyObject* future_Get(PyFuture* self) {
     NativeLock lock(self->concurrent);
     tkrzw::Status status = self->future->Get();
     lock.Release();
+    delete self->future;
+    self->future = nullptr;
     return CreatePyTkStatusMove(std::move(status));
   }
   if (type == typeid(std::pair<tkrzw::Status, std::string>)) {
     NativeLock lock(self->concurrent);
     const auto& result = self->future->GetString();
     lock.Release();
+    delete self->future;
+    self->future = nullptr;
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     if (self->is_str) {
@@ -889,6 +893,8 @@ static PyObject* future_Get(PyFuture* self) {
     NativeLock lock(self->concurrent);
     const auto& result = self->future->GetStringVector();
     lock.Release();
+    delete self->future;
+    self->future = nullptr;
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     PyObject* pylist = PyList_New(result.second.size());
@@ -906,6 +912,8 @@ static PyObject* future_Get(PyFuture* self) {
     NativeLock lock(self->concurrent);
     const auto& result = self->future->GetStringMap();
     lock.Release();
+    delete self->future;
+    self->future = nullptr;
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     PyObject* pydict = PyDict_New();
@@ -931,6 +939,8 @@ static PyObject* future_Get(PyFuture* self) {
     NativeLock lock(self->concurrent);
     const auto& result = self->future->GetInteger();
     lock.Release();
+    delete self->future;
+    self->future = nullptr;
     PyObject* pyrv = PyList_New(2);
     PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     PyList_SET_ITEM(pyrv, 1, PyLong_FromLongLong(result.second));

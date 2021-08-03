@@ -199,12 +199,12 @@ class Future:
   """
   Future containing a status object and extra data.
 
-  This class implements the awaitable protocol so an instance is usable with the "await" sentence.
+  Future objects are made by methods of AsyncDBM.  Every future object should be destroyed by the "Destruct" method or the "Get" method to free resources.  This class implements the awaitable protocol so an instance is usable with the "await" sentence.
   """
 
   def __init__(self):
     """
-    The constructor cannot be called directly.  Use DBM#MakeIterator.
+    The constructor cannot be called directly.  Use methods of AsyncDBM.
     """
     pass  # native code
 
@@ -247,7 +247,7 @@ class Future:
 
     :return: The result status and extra data if any.  The existence and the type of extra data depends on the operation which makes the future.  For DBM#Get, a tuple of the status and the retrieved value is returned.  For DBM#Set and DBM#Remove, the status object itself is returned.
 
-    This can be called only once for a future object.
+    The internal resource is released by this method.  "Wait" and "Get" cannot be called after calling this method.
     """
     pass  # native code
 
@@ -988,6 +988,14 @@ class AsyncDBM:
     Returns A string representation of the object.
 
     :return: The string representation of the object.
+    """
+    pass  # native code
+
+  def __str__(self):
+    """
+    Returns a string representation of the content.
+
+    :return: The string representation of the content.
     """
     pass  # native code
 
