@@ -158,7 +158,7 @@ The following code is a typical example of coroutine usage.  The AsyncDBM class 
      # Prepares the asynchronous adapter with 4 worker threads.
      adbm = tkrzw.AsyncDBM(dbm, 4)
 
-     # Execute the Set method asynchronously.
+     # Executes the Set method asynchronously.
      future = adbm.Set("hello", "world")
      # Does something in the foreground.
      print("Setting a record")
@@ -168,7 +168,7 @@ The following code is a typical example of coroutine usage.  The AsyncDBM class 
      if status != tkrzw.Status.SUCCESS:
          print("ERROR: " + str(status))
 
-     # Execute the Get method asynchronously.
+     # Executes the Get method asynchronously.
      future = adbm.GetStr("hello")
      # Does something in the foreground.
      print("Getting a record")
@@ -178,7 +178,7 @@ The following code is a typical example of coroutine usage.  The AsyncDBM class 
      if status == tkrzw.Status.SUCCESS:
          print("VALUE: " + value)
 
-     # Release the asynchronous adapter.
+     # Releases the asynchronous adapter.
      adbm.Destruct()
 
      # Closes the database.
