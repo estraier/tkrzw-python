@@ -117,7 +117,9 @@ class Status:
   """Error that a specific resource is duplicated."""
   BROKEN_DATA_ERROR = 11
   """Error that internal data are broken."""
-  APPLICATION_ERROR = 12
+  NETWORK_ERROR = 12
+  """Error caused by networking failure."""
+  APPLICATION_ERROR = 13
   """Generic error caused by the application logic."""
 
   def __init__(self, code=SUCCESS, message=""):

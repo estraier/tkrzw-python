@@ -697,6 +697,8 @@ static bool DefineStatus() {
                     (int64_t)tkrzw::Status::DUPLICATION_ERROR)) return false;
   if (!SetConstLong(cls_status, "BROKEN_DATA_ERROR",
                     (int64_t)tkrzw::Status::BROKEN_DATA_ERROR)) return false;
+  if (!SetConstLong(cls_status, "NETWORK_ERROR",
+                    (int64_t)tkrzw::Status::NETWORK_ERROR)) return false;
   if (!SetConstLong(cls_status, "APPLICATION_ERROR",
                     (int64_t)tkrzw::Status::APPLICATION_ERROR)) return false;
   if (PyModule_AddObject(mod_tkrzw, "Status", cls_status) != 0) return false;
