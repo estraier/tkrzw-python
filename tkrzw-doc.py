@@ -641,6 +641,10 @@ class DBM:
     :return: The result status.
 
     The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+
+    In addition, HashDBM, TreeDBM, and SkipDBM supports the following parameters.
+      - skip_broken_records (bool): If true, the operation continues even if there are broken records which can be skipped.
+      - sync_hard (bool): If true, physical synchronization with the hardware is done before finishing the rebuilt file.
     """
     pass  # native code
 
@@ -1139,7 +1143,7 @@ class AsyncDBM:
     :param params: Optional parameters.
     :return: The future for the result status.
 
-    The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+    The parameters work in the same way as with DBM::Rebuild.
     """
     pass  # native code
 
@@ -1151,7 +1155,7 @@ class AsyncDBM:
     :param params: Optional parameters.
     :return: The future for the result status.
 
-    Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
+    The parameters work in the same way as with DBM::Synchronize.
     """
     pass  # native code
 
