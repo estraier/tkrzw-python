@@ -668,11 +668,12 @@ class DBM:
     """
     pass  # native code
 
-  def CopyFileData(self, dest_path):
+  def CopyFileData(self, dest_path, sync_hard=False):
     """
     Copies the content of the database file to another file.
 
     :param dest_path: A path to the destination file.
+    :param sync_hard: True to do physical synchronization with the hardware.
     :return: The result status.
     """
     pass  # native code
@@ -1159,11 +1160,12 @@ class AsyncDBM:
     """
     pass  # native code
 
-  def CopyFileData(self, dest_path):
+  def CopyFileData(self, dest_path, sync_hard=False):
     """
     Copies the content of the database file to another file.
 
     :param dest_path: A path to the destination file.
+    :param sync_hard: True to do physical synchronization with the hardware.
     :return: The future for the result status.
     """
     pass  # native code

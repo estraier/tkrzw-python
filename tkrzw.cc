@@ -1785,16 +1785,21 @@ static PyObject* dbm_CopyFileData(PyDBM* self, PyObject* pyargs) {
     return nullptr;
   }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc != 1) {
+  if (argc < 1 || argc > 2) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
   PyObject* pydest = PyTuple_GET_ITEM(pyargs, 0);
+  bool sync_hard = false;
+  if (argc > 1) {
+    PyObject* pysync_hard = PyTuple_GET_ITEM(pyargs, 1);
+    sync_hard = PyObject_IsTrue(pysync_hard);
+  }
   SoftString dest(pydest);
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = self->dbm->CopyFileData(std::string(dest.Get()));
+    status = self->dbm->CopyFileData(std::string(dest.Get()), sync_hard);
   }
   return CreatePyTkStatusMove(std::move(status));
 }
@@ -3126,13 +3131,18 @@ static PyObject* asyncdbm_CopyFileData(PyAsyncDBM* self, PyObject* pyargs) {
     return nullptr;
   }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc != 1) {
+  if (argc < 1 || argc > 2) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
+  bool sync_hard = false;
+  if (argc > 1) {
+    PyObject* pysync_hard = PyTuple_GET_ITEM(pyargs, 1);
+    sync_hard = PyObject_IsTrue(pysync_hard);
+  }  
   PyObject* pydest = PyTuple_GET_ITEM(pyargs, 0);
   SoftString dest(pydest);
-  tkrzw::StatusFuture future(self->async->CopyFileData(std::string(dest.Get())));
+  tkrzw::StatusFuture future(self->async->CopyFileData(std::string(dest.Get()), sync_hard));
   return CreatePyFutureMove(std::move(future), self->concurrent);
 }
 
