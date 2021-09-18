@@ -428,6 +428,12 @@ class DBM:
       - cap_rec_num (int): The maximum number of records.
       - cap_mem_size (int): The total memory size to use.
 
+    All databases support taking update logs into files.  It is enabled by setting the prefix of update log files.
+      - ulog_prefix (str): The prefix of the update log files.
+      - ulog_max_file_size (num): The maximum file size of each update log file.  By default, it is 1GiB.
+      - ulog_server_id (num): The server ID attached to each log.  By default, it is 0.
+      - ulog_dbm_index (num): The DBM index attached to each log.  By default, it is 0.
+
     For the file "PositionalParallelFile" and "PositionalAtomicFile", these optional parameters are supported.
       - block_size (int): The block size to which all blocks should be aligned.
       - access_options (str): Values separated by colon.  "direct" for direct I/O.  "sync" for synchrnizing I/O, "padding" for file size alignment by padding, "pagecache" for the mini page cache in the process.
