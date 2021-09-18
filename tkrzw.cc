@@ -1702,6 +1702,23 @@ static PyObject* dbm_GetFilePath(PyDBM* self) {
   Py_RETURN_NONE;
 }
 
+// Implementation of DBM#GetTimestamp.
+static PyObject* dbm_GetTimestamp(PyDBM* self) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  double timestamp = -1;
+  {
+    NativeLock lock(self->concurrent);
+    timestamp = self->dbm->GetTimestampSimple();
+  }
+  if (timestamp >= 0) {
+    return PyFloat_FromDouble(timestamp);
+  }
+  Py_RETURN_NONE;
+}
+
 // Implementation of DBM#Clear.
 static PyObject* dbm_Clear(PyDBM* self) {
   if (self->dbm == nullptr) {
@@ -2215,6 +2232,8 @@ static bool DefineDBM() {
      "Gets the current file size of the database."},
     {"GetFilePath", (PyCFunction)dbm_GetFilePath, METH_NOARGS,
      "Gets the path of the database file."},
+    {"GetTimestamp", (PyCFunction)dbm_GetTimestamp, METH_NOARGS,
+     "Gets the timestamp in seconds of the last modified time."},
     {"Clear", (PyCFunction)dbm_Clear, METH_NOARGS,
      "Removes all records."},
     {"Rebuild", (PyCFunction)dbm_Rebuild, METH_VARARGS | METH_KEYWORDS,

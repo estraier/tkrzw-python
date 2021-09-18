@@ -631,6 +631,14 @@ class DBM:
     """
     pass  # native code
 
+  def GetTimestamp(self):
+    """
+    Gets the timestamp in seconds of the last modified time.
+
+    :return: The timestamp of the last modified time, or None on failure.
+    """
+    pass  # native code
+
   def Clear(self):
     """
     Removes all records.

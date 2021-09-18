@@ -178,6 +178,7 @@ class TestTkrzw(unittest.TestCase):
       self.assertTrue(dbm.GetFileSize() > 0)
       if path:
         self.assertTrue(path in dbm.GetFilePath())
+        self.assertTrue(dbm.GetTimestamp() > 0)
       self.assertTrue(dbm.IsWritable())
       self.assertTrue(dbm.IsHealthy())
       if class_name in ("TreeDBM", "SkipDBM", "BabyDBM", "StdTreeDBM"):
