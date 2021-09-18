@@ -1,3 +1,10 @@
+2021-09-19  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.22
+
+	- Add GetTimestamp method.
+	- Compatibility to the C++ library: Tkrzw 1.0.11
+
 2021-08-27  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.21
