@@ -385,6 +385,7 @@ class DBM:
       - no_create (bool): True to omit file creation.
       - no_wait (bool): True to fail if the file is locked by another process.
       - no_lock (bool): True to omit file locking.
+      - sync_hard (bool): True to do physical synchronization when closing.
 
     The optional parameter "dbm" supercedes the decision of the database type by the extension.  The value is the type name: "HashDBM", "TreeDBM", "SkipDBM", "TinyDBM", "BabyDBM", "CacheDBM", "StdHashDBM", "StdTreeDBM".
 
@@ -1270,6 +1271,7 @@ class File:
       - no_create (bool): True to omit file creation.
       - no_wait (bool): True to fail if the file is locked by another process.
       - no_lock (bool): True to omit file locking.
+      - sync_hard (bool): True to do physical synchronization when closing.
 
     The optional parameter "file" specifies the internal file implementation class.  The default file class is "MemoryMapAtomicFile".  The other supported classes are "StdFile", "MemoryMapAtomicFile", "PositionalParallelFile", and "PositionalAtomicFile".
 

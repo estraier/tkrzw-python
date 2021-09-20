@@ -1096,11 +1096,15 @@ static PyObject* dbm_Open(PyDBM* self, PyObject* pyargs, PyObject* pykwds) {
     if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_lock", "false"))) {
       open_options |= tkrzw::File::OPEN_NO_LOCK;
     }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "sync_hard", "false"))) {
+      open_options |= tkrzw::File::OPEN_SYNC_HARD;
+    }
     params.erase("concurrent");
     params.erase("truncate");
     params.erase("no_create");
     params.erase("no_wait");
     params.erase("no_lock");
+    params.erase("sync_hard");
   }
   if (num_shards >= 0) {
     self->dbm = new tkrzw::ShardDBM();
@@ -3439,6 +3443,9 @@ static PyObject* file_Open(PyFile* self, PyObject* pyargs, PyObject* pykwds) {
     }
     if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_lock", "false"))) {
       open_options |= tkrzw::File::OPEN_NO_LOCK;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "sync_hard", "false"))) {
+      open_options |= tkrzw::File::OPEN_SYNC_HARD;
     }
   }
   self->concurrent = concurrent;

@@ -1,3 +1,10 @@
+2021-09-20  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.23
+
+	- sync_hard of the open options is supported.
+	- Compatibility to the C++ library: Tkrzw 1.0.12
+
 2021-09-19  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.22
