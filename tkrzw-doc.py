@@ -15,7 +15,9 @@
 
 
 class Utility:
-  """Library utilities."""
+  """
+  Library utilities.
+  """
 
   VERSION = "0.0.0"
   """The package version numbers."""
