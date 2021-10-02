@@ -149,6 +149,16 @@ class Status:
     """
     pass  # native code
 
+  def __eq__(self, rhs):
+    """
+    Returns true if the given object is equivalent to this object.
+    
+    :return: True if the given object is equivalent to this object.
+
+    This supports comparison between a status object and a status code number.
+    """
+    pass  # native code
+
   def Set(self, code=SUCCESS, message=""):
     """
     Sets the code and the message.
