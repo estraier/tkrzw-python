@@ -638,6 +638,18 @@ static PyObject* status_OrDie(PyTkStatus* self) {
   Py_RETURN_NONE;
 }
 
+// Implementation of Status.CodeName.
+static PyObject* status_CodeName(PyObject* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pycode = PyTuple_GET_ITEM(pyargs, 0);
+  const tkrzw::Status::Code code = (tkrzw::Status::Code)PyLong_AsLong(pycode);
+  return CreatePyString(tkrzw::ToString(tkrzw::Status::CodeName(code)));
+}
+
 // Defines the Status class.
 static bool DefineStatus() {
   static PyTypeObject type_status = {PyVarObject_HEAD_INIT(nullptr, 0)};
@@ -667,6 +679,8 @@ static bool DefineStatus() {
      "Returns true if the status is success."},
     {"OrDie", (PyCFunction)status_OrDie, METH_NOARGS,
      "Raises a runtime error if the status is not success."},
+    {"CodeName", (PyCFunction)status_CodeName, METH_CLASS | METH_VARARGS,
+     "Gets the string name of a status code."},
     {nullptr, nullptr, 0, nullptr},
   };
   type_status.tp_methods = methods;

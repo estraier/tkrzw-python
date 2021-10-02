@@ -196,6 +196,15 @@ class Status:
     """
     pass  # native code
 
+  @classmethod
+  def CodeName(cls, code):
+    """
+    Gets the string name of a status code.
+
+    :param: code The status code.
+    :return: The name of the status code.
+    """
+
 
 class Future:
   """
@@ -793,7 +802,7 @@ class DBM:
     pass  # native code
 
   @classmethod
-  def RestoreDatabase(old_file_path, new_file_path, class_name="", end_offset=-1):
+  def RestoreDatabase(cls, old_file_path, new_file_path, class_name="", end_offset=-1):
     """
     Restores a broken database as a new healthy database.
 

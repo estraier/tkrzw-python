@@ -90,6 +90,8 @@ class TestTkrzw(unittest.TestCase):
       self.assertTrue("void" in str(e))
     else:
       self.fail("no exception")
+    self.assertEqual("SUCCESS", Status.CodeName(Status.SUCCESS))
+    self.assertEqual("INFEASIBLE_ERROR", Status.CodeName(Status.INFEASIBLE_ERROR))
 
   # Basic tests.
   def testBasic(self):
