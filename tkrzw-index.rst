@@ -29,7 +29,7 @@ Tkrzw is a library implementing DBM with various algorithms.  It features high d
   - StdHashDBM : On-memory DBM implementations using std::unordered_map.
   - StdTreeDBM : On-memory DBM implementations using std::map.
 
-Whereas Tkrzw is C++ library, this package provides its Python interface.  All above data structures are available via one adapter class ":class:`DBM`".  Read the `homepage <http://dbmx.net/tkrzw/>`_ for details.
+Whereas Tkrzw is C++ library, this package provides its Python interface.  All above data structures are available via one adapter class ":class:`DBM`".  Read the `homepage <https://dbmx.net/tkrzw/>`_ for details.
 
 DBM stores key-value pairs of strings.  Each string is represented as bytes in Python.  You can specify any type of objects as keys and values if they can be converted into strings, which are "encoded" into bytes.  When you retreive the value of a record, the type is determined according to the method: Get for bytes, GetStr for string, or [] for the same type as the key.
 
