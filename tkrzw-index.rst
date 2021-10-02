@@ -2,6 +2,7 @@ Module and Classes
 ==================
 
 .. autosummary::
+   :nosignatures:
 
    tkrzw
    tkrzw.Utility
