@@ -67,6 +67,6 @@ while True:
     iter.Next()
 
 # Closes the database.
-dbm.Close()
+dbm.Close().OrDie()
 
 # END OF FILE

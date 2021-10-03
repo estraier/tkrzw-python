@@ -144,7 +144,7 @@ The following code is a more complex example.  Resources of DBM and Iterator are
      iter.Next()
 
  # Closes the database.
- dbm.Close()
+ dbm.Close().OrDie()
 
 The following code is a typical example of coroutine usage.  The AsyncDBM class manages a thread pool and handles database operations in the background in parallel.  Each Method of AsyncDBM returns a Future object to monitor the result.  The Future class implements the awaitable protocol so that the instance is usable with the "await" sentence to await the operation while yielding the execution ownership.::
 
