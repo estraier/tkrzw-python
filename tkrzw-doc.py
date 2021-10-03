@@ -801,7 +801,7 @@ class DBM:
     :param mode: The search mode.  "contain" extracts keys containing the pattern.  "begin" extracts keys beginning with the pattern.  "end" extracts keys ending with the pattern.  "regex" extracts keys partially matches the pattern of a regular expression.  "edit" extracts keys whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts keys whose edit distance to the binary pattern is the least.
     :param pattern: The pattern for matching.
     :param capacity: The maximum records to obtain.  0 means unlimited.
-    :return: A list of keys matching the condition.
+    :return: A list of string keys matching the condition.
     """
     pass  # native code
 
