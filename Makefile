@@ -93,7 +93,7 @@ apidoc :
 	echo "html_title = 'Python binding of Tkrzw'" >> tmp-doc/out/conf.py.tmp
 	echo "autodoc_default_options = {'members': True, 'special-members': True, 'exclude-members': '__dict__,__module__,__weakref__'}"  >> tmp-doc/out/conf.py.tmp
 	mv -f tmp-doc/out/conf.py.tmp tmp-doc/out/conf.py
-	cp -f tkrzw-index.rst tmp-doc/out/index.rst
+	cp -f index.rst tmp-doc/out/index.rst
 	cd tmp-doc/out ; $(MAKE) html
 	mv tmp-doc/out/_build/html api-doc
 
