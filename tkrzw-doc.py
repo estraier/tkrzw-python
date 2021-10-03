@@ -356,7 +356,7 @@ class DBM:
     Gets the value of a record, to enable the [] operator.
 
     :param key: The key of the record.
-    :return: The value of the matching record.  An exception is raised for missing records.
+    :return: The value of the matching record.  An exception is raised for missing records.  If the given key is a string, the returned value is also a string.  Otherwise, the return value is bytes.
     :raise StatusException: An exception containing the status object.
     """
     pass  # native code
