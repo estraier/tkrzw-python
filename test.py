@@ -160,6 +160,7 @@ class TestTkrzw(unittest.TestCase):
       path = conf["path"]
       path = self._make_tmp_path(path) if path else ""
       dbm = DBM()
+      self.assertEqual(0, len(dbm))
       open_params = conf["open_params"].copy()
       open_params["truncate"] = True
       self.assertFalse(dbm.IsOpen())

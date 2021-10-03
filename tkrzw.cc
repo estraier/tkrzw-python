@@ -2108,15 +2108,14 @@ static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
 // Implementation of DBM#__len__.
 static Py_ssize_t dbm_len(PyDBM* self) {
   if (self->dbm == nullptr) {
-    ThrowInvalidArguments("not opened database");
-    return -1;
+    return 0;
   }
   int64_t count = -1;
   {
     NativeLock lock(self->concurrent);
     count = self->dbm->CountSimple();
   }
-  return count;
+  return std::max<int64_t>(count, 0);
 }
 
 // Implementation of DBM#__getitem__.

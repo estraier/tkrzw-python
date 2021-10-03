@@ -347,7 +347,7 @@ class DBM:
     """
     Gets the number of records, to enable the len operator.
 
-    :return: The number of records on success, or -1 on failure.
+    :return: The number of records on success, or 0 on failure.
     """
     pass  # native code
 
