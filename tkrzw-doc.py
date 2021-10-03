@@ -356,7 +356,7 @@ class DBM:
     Gets the value of a record, to enable the [] operator.
 
     :param key: The key of the record.
-    :return: The value of the matching record.  An exception is raised on failure.
+    :return: The value of the matching record.  An exception is raised for missing records.
     :raise StatusException: An exception containing the status object.
     """
     pass  # native code
@@ -367,6 +367,15 @@ class DBM:
 
     :param key: The key of the record.
     :param value: The value of the record.
+    :raise StatusException: An exception containing the status object.
+    """
+    pass  # native code
+
+  def __delitem__(self, key):
+    """
+    Removes a record of a key, to enable the del [] operator.
+
+    :param key: The key of the record.
     :raise StatusException: An exception containing the status object.
     """
     pass  # native code
