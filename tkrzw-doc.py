@@ -356,7 +356,7 @@ class DBM:
     Gets the value of a record, to enable the [] operator.
 
     :param key: The key of the record.
-    :return: The value of the matching record or None on failure.
+    :return: The value of the matching record.  An exception is raised on failure.
     :raise StatusException: An exception containing the status object.
     """
     pass  # native code
@@ -367,7 +367,6 @@ class DBM:
 
     :param key: The key of the record.
     :param value: The value of the record.
-    :return: The value of the matching record or None on failure.
     :raise StatusException: An exception containing the status object.
     """
     pass  # native code
