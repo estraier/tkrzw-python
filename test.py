@@ -475,7 +475,8 @@ class TestTkrzw(unittest.TestCase):
               self.test.assertEqual(2, len(record))
               self.test.assertEqual(key, record[0].decode())
               self.test.assertEqual(value, record[1].decode())
-              iter.Next().OrDie();
+              status = iter.Next()
+              self.test.assertTrue(status == Status.SUCCESS or status == Status.NOT_FOUND_ERROR)
           elif rnd_state.randint(0, 4) == 0:
             status = Status()
             rec_value = dbm.Get(key, status)
