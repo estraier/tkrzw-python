@@ -2142,7 +2142,7 @@ static PyObject* dbm_getitem(PyDBM* self, PyObject* pykey) {
   return CreatePyBytes(value);
 }
 
-// Implementation of DBM#__setitem__.
+// Implementation of DBM#__setitem__ and DBM#__delitem__.
 static int dbm_setitem(PyDBM* self, PyObject* pykey, PyObject* pyvalue) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
