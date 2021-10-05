@@ -176,6 +176,10 @@ class TestTkrzw(unittest.TestCase):
       for i in range(0, 20, 2):
         key = "{:08d}".format(i)
         self.assertEqual(Status.SUCCESS, dbm.Remove(key))
+      if class_name in ("HashDBM", "TreeDBM", "TinyDBM", "BabyDBM"):
+        self.assertEqual(Status.SUCCESS, dbm.Set("日本", "東京"))
+        self.assertEqual("東京", dbm.GetStr("日本"));
+        self.assertEqual(Status.SUCCESS, dbm.Remove("日本"))
       self.assertEqual(Status.SUCCESS, dbm.Synchronize(False, **conf["synchronize_params"]))
       self.assertEqual(10, dbm.Count())
       self.assertTrue(dbm.GetFileSize() > 0)
