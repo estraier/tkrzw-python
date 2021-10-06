@@ -394,7 +394,7 @@ class DBM:
 
     :param path: A path of the file.
     :param writable: If true, the file is writable.  If false, it is read-only.
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The result status.
 
     The extension of the path indicates the type of the database.
@@ -534,7 +534,7 @@ class DBM:
     Sets multiple records of the keyword arguments.
 
     :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
-    :param records: Records to store.
+    :param records: Records to store, specified as keyword parameters.
     :return: The result status.  If there are records avoiding overwriting, DUPLICATION_ERROR is returned.
     """
     pass  # native code
@@ -595,7 +595,7 @@ class DBM:
     Appends data to multiple records of the keyword arguments.
 
     :param delim: The delimiter to put after the existing record.
-    :param records: Records to append.  Existing records with the same keys are overwritten.
+    :param records: Records to append, specified as keyword parameters.
     :return: The result status.
 
     If there's no existing record, the value is set without the delimiter.
@@ -681,7 +681,7 @@ class DBM:
     """
     Rebuilds the entire database.
 
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The result status.
 
     The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
@@ -705,7 +705,7 @@ class DBM:
     Synchronizes the content of the database to the file system.
 
     :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The result status.
 
     Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
@@ -1109,7 +1109,7 @@ class AsyncDBM:
     Sets multiple records of the keyword arguments.
 
     :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
-    :param records: Records to store.
+    :param records: Records to store, specified as keyword parameters.
     :return: The future for the result status.  If overwriting is abandoned, DUPLICATION_ERROR is set.
     """
     pass  # native code
@@ -1132,7 +1132,7 @@ class AsyncDBM:
     Appends data to multiple records of the keyword arguments.
 
     :param delim: The delimiter to put after the existing record.
-    :param records: Records to append.  Existing records with the same keys are overwritten.
+    :param records: Records to append, specified as keyword parameters.
     :return: The future for the result status.
 
     If there's no existing record, the value is set without the delimiter.
@@ -1185,7 +1185,7 @@ class AsyncDBM:
     """
     Rebuilds the entire database.
 
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The future for the result status.
 
     The parameters work in the same way as with DBM::Rebuild.
@@ -1197,7 +1197,7 @@ class AsyncDBM:
     Synchronizes the content of the database to the file system.
 
     :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The future for the result status.
 
     The parameters work in the same way as with DBM::Synchronize.
@@ -1290,7 +1290,7 @@ class File:
 
     :param path: A path of the file.
     :param writable: If true, the file is writable.  If false, it is read-only.
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The result status.
 
     The optional parameters can include an option for the concurrency tuning.  By default, database operatins are done under the GIL (Global Interpreter Lock), which means that database operations are not done concurrently even if you use multiple threads.  If the "concurrent" parameter is true, database operations are done outside the GIL, which means that database operations can be done concurrently if you use multiple threads.  However, the downside is that swapping thread data is costly so the actual throughput is often worse in the concurrent mode than in the normal mode.  Therefore, the concurrent mode should be used only if the database is huge and it can cause blocking of threads in multi-thread usage.
