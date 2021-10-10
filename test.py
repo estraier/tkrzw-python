@@ -151,7 +151,7 @@ class TestTkrzw(unittest.TestCase):
        "expected_class": "StdTreeDBM"},
       {"path": "casket",
        "open_params":
-       {"num_shards": 4, "dbm": "hash", "num_buckets": 100, "lock_mem_buckets": False},
+       {"num_shards": 4, "dbm": "hash", "num_buckets": 100},
        "rebuild_params": {},
        "synchronize_params": {},
        "expected_class": "HashDBM"},
