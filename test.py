@@ -79,10 +79,10 @@ class TestTkrzw(unittest.TestCase):
     self.assertTrue("foobar" in repr(status))
     self.assertFalse(status.IsOK())
     s2 = Status(Status.NOT_IMPLEMENTED_ERROR, "void")
-    status.Join(s2);
+    status.Join(s2)
     self.assertEqual("NOT_FOUND_ERROR: foobar", str(status))
     status.Set(Status.SUCCESS, "OK")
-    status.Join(s2);
+    status.Join(s2)
     self.assertEqual("NOT_IMPLEMENTED_ERROR: void", str(status))
     try:
       status.OrDie()
@@ -178,7 +178,7 @@ class TestTkrzw(unittest.TestCase):
         self.assertEqual(Status.SUCCESS, dbm.Remove(key))
       if class_name in ("HashDBM", "TreeDBM", "TinyDBM", "BabyDBM"):
         self.assertEqual(Status.SUCCESS, dbm.Set("日本", "東京"))
-        self.assertEqual("東京", dbm.GetStr("日本"));
+        self.assertEqual("東京", dbm.GetStr("日本"))
         self.assertEqual(Status.SUCCESS, dbm.Remove("日本"))
       self.assertEqual(Status.SUCCESS, dbm.Synchronize(False, **conf["synchronize_params"]))
       self.assertEqual(10, dbm.Count())
@@ -240,7 +240,7 @@ class TestTkrzw(unittest.TestCase):
       it_records = {}
       iter = dbm.MakeIterator()
       status = Status()
-      record = iter.Get(status);
+      record = iter.Get(status)
       self.assertEqual(Status.NOT_FOUND_ERROR, status)
       self.assertEqual(None, record)
       self.assertEqual(Status.SUCCESS, iter.First())
@@ -268,8 +268,8 @@ class TestTkrzw(unittest.TestCase):
         it_records[key.decode()] = value.decode()
       self.assertEqual(records, it_records)
       self.assertEqual(Status.SUCCESS, iter.Jump("00000011"))
-      self.assertEqual("00000011", iter.GetKey().decode());
-      self.assertEqual("11", iter.GetValue().decode());
+      self.assertEqual("00000011", iter.GetKey().decode())
+      self.assertEqual("11", iter.GetValue().decode())
       if dbm.IsOrdered():
         self.assertEqual(Status.SUCCESS, iter.Last())
         it_records = {}
@@ -318,7 +318,7 @@ class TestTkrzw(unittest.TestCase):
       value = export_dbm.Increment("10000", 2, 10000, status)
       self.assertEqual(Status.SUCCESS, status)
       self.assertEqual(value, 10002)
-      value = export_dbm.Increment("10000", Utility.INT64MIN, 0, status);
+      value = export_dbm.Increment("10000", Utility.INT64MIN, 0, status)
       self.assertEqual(Status.SUCCESS, status)
       self.assertEqual(value, 10002)
       self.assertEqual(Status.DUPLICATION_ERROR, export_dbm.Set("1", "101", False))
@@ -398,7 +398,7 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.SUCCESS, export_iter.First())
       while True:
         status.Set(Status.UNKNOWN_ERROR)
-        record = export_iter.Step(status);
+        record = export_iter.Step(status)
         if not record:
           self.assertEqual(Status.NOT_FOUND_ERROR, status)
           break
@@ -409,7 +409,7 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.SUCCESS, export_iter.First())
       while True:
         status.Set(Status.UNKNOWN_ERROR)
-        record = export_iter.StepStr(status);
+        record = export_iter.StepStr(status)
         if not record:
           self.assertEqual(Status.NOT_FOUND_ERROR, status)
           break
@@ -419,7 +419,7 @@ class TestTkrzw(unittest.TestCase):
       pop_count = 0
       while True:
         status.Set(Status.UNKNOWN_ERROR)
-        record = export_iter.PopFirst(status);
+        record = export_iter.PopFirst(status)
         if not record:
           self.assertEqual(Status.NOT_FOUND_ERROR, status)
           break
@@ -432,7 +432,7 @@ class TestTkrzw(unittest.TestCase):
       pop_count = 0
       while True:
         status.Set(Status.UNKNOWN_ERROR)
-        record = export_iter.PopFirstStr(status);
+        record = export_iter.PopFirstStr(status)
         if not record:
           self.assertEqual(Status.NOT_FOUND_ERROR, status)
           break
@@ -468,7 +468,7 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.SUCCESS, iter.JumpUpper("", True))
       for i in range(1, 101):
         key = "{:03d}".format(i)
-        value = str(i * i);
+        value = str(i * i)
         self.assertEqual(Status.SUCCESS, dbm.Set(key, value, False))
       self.assertEqual(Status.SUCCESS, dbm.Synchronize(False))
       self.assertEqual(Status.SUCCESS, iter.First())
@@ -514,7 +514,7 @@ class TestTkrzw(unittest.TestCase):
       def run(self):
         for i in range(0, num_records):
           key_num = rnd_state.randint(1, num_records)
-          key_num = key_num - key_num % num_threads + self.thid;
+          key_num = key_num - key_num % num_threads + self.thid
           key = str(key_num)
           value = str(key_num * key_num)
           if rnd_state.randint(0, num_records) == 0:
@@ -616,10 +616,10 @@ class TestTkrzw(unittest.TestCase):
     file = File()
     self.assertEqual(Status.SUCCESS, file.Open(dest_path, True, truncate=True))
     self.assertEqual(Status.SUCCESS, dbm.ExportToFlatRecords(file))
-    self.assertEqual(Status.SUCCESS, dbm.Clear());
-    self.assertEqual(0, dbm.Count());
+    self.assertEqual(Status.SUCCESS, dbm.Clear())
+    self.assertEqual(0, dbm.Count())
     self.assertEqual(Status.SUCCESS, dbm.ImportFromFlatRecords(file))
-    self.assertEqual(100, dbm.Count());
+    self.assertEqual(100, dbm.Count())
     self.assertEqual(Status.SUCCESS, file.Close())
     file = File()
     self.assertEqual(Status.SUCCESS, file.Open(dest_path, True, truncate=True))
