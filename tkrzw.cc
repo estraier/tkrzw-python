@@ -1668,6 +1668,30 @@ static PyObject* dbm_CompareExchangeMulti(PyDBM* self, PyObject* pyargs) {
   return CreatePyTkStatusMove(std::move(status));
 }
 
+// Implementation of DBM#Rekey.
+static PyObject* dbm_Rekey(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 3) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyold_key = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pynew_key = PyTuple_GET_ITEM(pyargs, 1);
+  const bool overwrite = argc > 2 ? PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 2)) : true;
+  SoftString old_key(pyold_key);
+  SoftString new_key(pynew_key);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->Rekey(old_key.Get(), new_key.Get(), overwrite);
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
 // Implementation of DBM#Count.
 static PyObject* dbm_Count(PyDBM* self) {
   if (self->dbm == nullptr) {
@@ -2243,6 +2267,8 @@ static bool DefineDBM() {
      "Increments the numeric value of a record."},
     {"CompareExchangeMulti", (PyCFunction)dbm_CompareExchangeMulti, METH_VARARGS,
      "Compares the values of records and exchanges if the condition meets."},
+    {"Rekey", (PyCFunction)dbm_Rekey, METH_VARARGS,
+     "Changes the key of a record."},
     {"Count", (PyCFunction)dbm_Count, METH_NOARGS,
      "Gets the number of records."},
     {"GetFileSize", (PyCFunction)dbm_GetFileSize, METH_NOARGS,
@@ -2686,6 +2712,154 @@ static PyObject* iter_Remove(PyIterator* self) {
   return CreatePyTkStatusMove(std::move(status));
 }
 
+// Implementation of Iterator#Step.
+static PyObject* iter_Step(PyIterator* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pystatus = nullptr;
+  if (argc > 0) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 0);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }  
+  std::string key, value;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->iter->Step(&key, &value);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    PyObject* pykey = CreatePyBytes(key);
+    PyObject* pyvalue = CreatePyBytes(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of Iterator#StepStr.
+static PyObject* iter_StepStr(PyIterator* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pystatus = nullptr;
+  if (argc > 0) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 0);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }  
+  std::string key, value;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->iter->Step(&key, &value);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    PyObject* pykey = CreatePyString(key);
+    PyObject* pyvalue = CreatePyString(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of Iterator#PopFirst.
+static PyObject* iter_PopFirst(PyIterator* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pystatus = nullptr;
+  if (argc > 0) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 0);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }  
+  std::string key, value;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->iter->PopFirst(&key, &value);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    PyObject* pykey = CreatePyBytes(key);
+    PyObject* pyvalue = CreatePyBytes(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of Iterator#PopFirstStr.
+static PyObject* iter_PopFirstStr(PyIterator* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pystatus = nullptr;
+  if (argc > 0) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 0);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }  
+  std::string key, value;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->iter->PopFirst(&key, &value);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    PyObject* pykey = CreatePyString(key);
+    PyObject* pyvalue = CreatePyString(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
 // Implementation of Iterator#__next__.
 static PyObject* iter_iternext(PyIterator* self) {
   std::string key, value;
@@ -2755,6 +2929,14 @@ static bool DefineIterator() {
      "Sets the value of the current record."},
     {"Remove", (PyCFunction)iter_Remove, METH_NOARGS,
      "Removes the current record."},
+    {"Step", (PyCFunction)iter_Step, METH_VARARGS,
+     "Gets the current record and moves the iterator to the next record."},
+    {"StepStr", (PyCFunction)iter_StepStr, METH_VARARGS,
+     "Gets the current record and moves the iterator to the next record, as strings."},
+    {"PopFirst", (PyCFunction)iter_PopFirst, METH_VARARGS,
+     "Jumps to the first record, removes it, and get the data."},
+    {"PopFirstStr", (PyCFunction)iter_PopFirstStr, METH_VARARGS,
+     "Jumps to the first record, removes it, and get the data, as strings."},
     {nullptr, nullptr, 0, nullptr}
   };
   type_iter.tp_methods = methods;

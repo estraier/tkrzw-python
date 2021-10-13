@@ -353,10 +353,10 @@ class TestTkrzw(unittest.TestCase):
         (("hop", None), ("step", None))))
       self.assertEqual(None, export_dbm.GetStr("hop"))
       self.assertEqual(None, export_dbm.GetStr("step"))
-      iter = export_dbm.MakeIterator()
-      self.assertEqual(Status.SUCCESS, iter.First())
-      self.assertEqual(Status.SUCCESS, iter.Set("foobar"))
-      self.assertEqual(Status.SUCCESS, iter.Remove())
+      export_iter = export_dbm.MakeIterator()
+      self.assertEqual(Status.SUCCESS, export_iter.First())
+      self.assertEqual(Status.SUCCESS, export_iter.Set("foobar"))
+      self.assertEqual(Status.SUCCESS, export_iter.Remove())
       self.assertEqual(0, len(export_dbm))
       self.assertEqual(Status.SUCCESS, export_dbm.Append("foo", "bar", ","))
       self.assertEqual(Status.SUCCESS, export_dbm.Append("foo", "baz", ","))
@@ -390,6 +390,55 @@ class TestTkrzw(unittest.TestCase):
       status = Status()
       self.assertEqual(None, export_dbm.Get("three", status))
       self.assertEqual(Status.NOT_FOUND_ERROR, status)
+      self.assertEqual(Status.SUCCESS, export_dbm.Set("zero", "foo"))
+      self.assertEqual(Status.SUCCESS, export_dbm.Rekey("zero", "one", True))
+      self.assertEqual(None, export_dbm.Get("zero"))
+      self.assertEqual("foo", export_dbm.GetStr("one"))
+      step_count = 0
+      self.assertEqual(Status.SUCCESS, export_iter.First())
+      while True:
+        status.Set(Status.UNKNOWN_ERROR)
+        record = export_iter.Step(status);
+        if not record:
+          self.assertEqual(Status.NOT_FOUND_ERROR, status)
+          break
+        self.assertEqual(Status.SUCCESS, status)
+        step_count += 1
+      self.assertEqual(export_dbm.Count(), step_count)
+      step_count = 0
+      self.assertEqual(Status.SUCCESS, export_iter.First())
+      while True:
+        status.Set(Status.UNKNOWN_ERROR)
+        record = export_iter.StepStr(status);
+        if not record:
+          self.assertEqual(Status.NOT_FOUND_ERROR, status)
+          break
+        self.assertEqual(Status.SUCCESS, status)
+        step_count += 1
+      self.assertEqual(export_dbm.Count(), step_count)
+      pop_count = 0
+      while True:
+        status.Set(Status.UNKNOWN_ERROR)
+        record = export_iter.PopFirst(status);
+        if not record:
+          self.assertEqual(Status.NOT_FOUND_ERROR, status)
+          break
+        self.assertEqual(Status.SUCCESS, status)
+        pop_count += 1
+      self.assertEqual(step_count, pop_count)
+      self.assertEqual(0, export_dbm.Count())
+      self.assertEqual(Status.SUCCESS, export_dbm.SetMulti(
+        False, japan="tokyo", china="beijing", korea="seoul", france="paris"))
+      pop_count = 0
+      while True:
+        status.Set(Status.UNKNOWN_ERROR)
+        record = export_iter.PopFirstStr(status);
+        if not record:
+          self.assertEqual(Status.NOT_FOUND_ERROR, status)
+          break
+        self.assertEqual(Status.SUCCESS, status)
+        pop_count += 1
+      self.assertEqual(4, pop_count)
       self.assertEqual(Status.SUCCESS, export_dbm.Close())
       self.assertEqual(Status.SUCCESS, dbm.Close())
 

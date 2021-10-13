@@ -636,6 +636,18 @@ class DBM:
     """
     pass  # native code
 
+  def Rekey(old_key, new_key, overwrite=True):
+    """
+    Changes the key of a record.
+
+    :param old_key: The old key of the record.
+    :param new_key: The new key of the record.
+    :param overwrite: Whether to overwrite the existing record of the new key.
+    :return: The result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is returned.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is returned.
+
+    This method is done atomically by ProcessMulti.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+    """
+
   def Count(self):
     """
     Gets the number of records.
@@ -1013,6 +1025,42 @@ class Iterator:
     Removes the current record.
 
     :return: The result status.
+    """
+    pass  # native code
+
+  def Step(self, status=None):
+    """
+    Gets the current record and moves the iterator to the next record.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the bytes key and the bytes value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def StepStr(self, status=None):
+    """
+    Gets the current record and moves the iterator to the next record, as strings.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the string key and the string value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def PopFirst(self, status=None):
+    """
+    Jumps to the first record, removes it, and get the data.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the bytes key and the bytes value of the first record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def PopFirstStr(self, status=None):
+    """
+    Jumps to the first record, removes it, and get the data, as strings.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the string key and the string value of the first record.  On failure, None is returned.
     """
     pass  # native code
 
