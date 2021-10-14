@@ -1675,19 +1675,20 @@ static PyObject* dbm_Rekey(PyDBM* self, PyObject* pyargs) {
     return nullptr;
   }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc < 2 || argc > 3) {
+  if (argc < 2 || argc > 4) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
   PyObject* pyold_key = PyTuple_GET_ITEM(pyargs, 0);
   PyObject* pynew_key = PyTuple_GET_ITEM(pyargs, 1);
   const bool overwrite = argc > 2 ? PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 2)) : true;
+  const bool copying = argc > 3 ? PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 3)) : false;
   SoftString old_key(pyold_key);
   SoftString new_key(pynew_key);
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
-    status = self->dbm->Rekey(old_key.Get(), new_key.Get(), overwrite);
+    status = self->dbm->Rekey(old_key.Get(), new_key.Get(), overwrite, copying);
   }
   return CreatePyTkStatusMove(std::move(status));
 }
