@@ -905,6 +905,23 @@ static PyObject* future_Get(PyFuture* self) {
     }
     return pyrv;
   }
+  if (type == typeid(std::pair<tkrzw::Status, std::pair<std::string, std::string>>)) {
+    NativeLock lock(self->concurrent);
+    const auto& result = self->future->GetStringPair();
+    lock.Release();
+    delete self->future;
+    self->future = nullptr;
+    PyObject* pyrv = PyList_New(3);
+    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    if (self->is_str) {
+      PyList_SET_ITEM(pyrv, 1, CreatePyString(result.second.first));
+      PyList_SET_ITEM(pyrv, 2, CreatePyString(result.second.second));
+    } else {
+      PyList_SET_ITEM(pyrv, 1, CreatePyBytes(result.second.first));
+      PyList_SET_ITEM(pyrv, 2, CreatePyBytes(result.second.second));
+    }
+    return pyrv;
+  }
   if (type == typeid(std::pair<tkrzw::Status, std::vector<std::string>>)) {
     NativeLock lock(self->concurrent);
     const auto& result = self->future->GetStringVector();
@@ -3301,6 +3318,48 @@ static PyObject* asyncdbm_CompareExchangeMulti(PyAsyncDBM* self, PyObject* pyarg
   return CreatePyFutureMove(std::move(future), self->concurrent);
 }
 
+// Implementation of AsyncDBM#Rekey.
+static PyObject* asyncdbm_Rekey(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 2 || argc > 4) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyold_key = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pynew_key = PyTuple_GET_ITEM(pyargs, 1);
+  const bool overwrite = argc > 2 ? PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 2)) : true;
+  const bool copying = argc > 3 ? PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 3)) : false;
+  SoftString old_key(pyold_key);
+  SoftString new_key(pynew_key);
+  tkrzw::StatusFuture future(self->async->Rekey(
+      old_key.Get(), new_key.Get(), overwrite, copying));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#PopFirst.
+static PyObject* asyncdbm_PopFirst(PyAsyncDBM* self) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  tkrzw::StatusFuture future(self->async->PopFirst());
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
+// Implementation of AsyncDBM#PopFirstStr.
+static PyObject* asyncdbm_PopFirstStr(PyAsyncDBM* self) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  tkrzw::StatusFuture future(self->async->PopFirst());
+  return CreatePyFutureMove(std::move(future), self->concurrent, true);
+}
+
 // Implementation of AsyncDBM#Clear.
 static PyObject* asyncdbm_Clear(PyAsyncDBM* self) {
   if (self->async == nullptr) {
@@ -3515,6 +3574,12 @@ static bool DefineAsyncDBM() {
      "Increments the numeric value of a record."},
     {"CompareExchangeMulti", (PyCFunction)asyncdbm_CompareExchangeMulti, METH_VARARGS,
      "Compares the values of records and exchanges if the condition meets."},
+    {"Rekey", (PyCFunction)asyncdbm_Rekey, METH_VARARGS,
+     "Changes the key of a record."},
+    {"PopFirst", (PyCFunction)asyncdbm_PopFirst, METH_NOARGS,
+     "Gets the first record and removes it."},
+    {"PopFirstStr", (PyCFunction)asyncdbm_PopFirstStr, METH_NOARGS,
+     "Gets the first record as strings and removes it."},
     {"Clear", (PyCFunction)asyncdbm_Clear, METH_NOARGS,
      "Removes all records."},
     {"Rebuild", (PyCFunction)asyncdbm_Rebuild, METH_VARARGS | METH_KEYWORDS,

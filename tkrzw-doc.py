@@ -648,8 +648,9 @@ class DBM:
 
     :return: The result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is returned.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is returned.
 
-    This method is done atomically by ProcessMulti.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+    This method is done atomically.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
     """
+    pass  # native code
 
   def PopFirst(self, status=None):
     """
@@ -1219,7 +1220,38 @@ class AsyncDBM:
 
     :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.
     :param desired: A sequence of pairs of the record keys and their desired values.  If the value is None, the record is to be removed.
-    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
+    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is set.
+    """
+    pass  # native code
+
+  def Rekey(old_key, new_key, overwrite=True, copying=False):
+    """
+    Changes the key of a record.
+
+    :param old_key: The old key of the record.
+    :param new_key: The new key of the record.
+    :param overwrite: Whether to overwrite the existing record of the new key.
+    :param copying: Whether to retain the record of the old key.
+
+    :return: The future for the result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is set.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is set.
+
+    This method is done atomically.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+    """
+    pass  # native code
+
+  def PopFirst(self):
+    """
+    Gets the first record and removes it.
+
+    :return: The future for a tuple of the result status, the bytes key, and the bytes value of the first record.
+    """
+    pass  # native code
+
+  def PopFirstStr(self):
+    """
+    Gets the first record as strings and removes it.
+
+    :return: The future for a tuple of the result status, the string key, and the string value of the first record.
     """
     pass  # native code
 
