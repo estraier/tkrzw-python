@@ -419,7 +419,7 @@ class TestTkrzw(unittest.TestCase):
       pop_count = 0
       while True:
         status.Set(Status.UNKNOWN_ERROR)
-        record = export_iter.PopFirst(status)
+        record = export_dbm.PopFirst(status)
         if not record:
           self.assertEqual(Status.NOT_FOUND_ERROR, status)
           break
@@ -432,7 +432,7 @@ class TestTkrzw(unittest.TestCase):
       pop_count = 0
       while True:
         status.Set(Status.UNKNOWN_ERROR)
-        record = export_iter.PopFirstStr(status)
+        record = export_dbm.PopFirstStr(status)
         if not record:
           self.assertEqual(Status.NOT_FOUND_ERROR, status)
           break

@@ -216,6 +216,7 @@ class Status:
     :param: code The status code.
     :return: The name of the status code.
     """
+    pass  # native code
 
 
 class Future:
@@ -650,6 +651,24 @@ class DBM:
     This method is done atomically by ProcessMulti.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
     """
 
+  def PopFirst(self, status=None):
+    """
+    Gets the first record and removes it.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the bytes key and the bytes value of the first record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def PopFirstStr(self, status=None):
+    """
+    Gets the first record as strings and removes it.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the string key and the string value of the first record.  On failure, None is returned.
+    """
+    pass  # native code
+
   def Count(self):
     """
     Gets the number of records.
@@ -1045,24 +1064,6 @@ class Iterator:
 
     :param status: A status object to which the result status is assigned.  It can be omitted.
     :return: A tuple of the string key and the string value of the current record.  On failure, None is returned.
-    """
-    pass  # native code
-
-  def PopFirst(self, status=None):
-    """
-    Jumps to the first record, removes it, and get the data.
-
-    :param status: A status object to which the result status is assigned.  It can be omitted.
-    :return: A tuple of the bytes key and the bytes value of the first record.  On failure, None is returned.
-    """
-    pass  # native code
-
-  def PopFirstStr(self, status=None):
-    """
-    Jumps to the first record, removes it, and get the data, as strings.
-
-    :param status: A status object to which the result status is assigned.  It can be omitted.
-    :return: A tuple of the string key and the string value of the first record.  On failure, None is returned.
     """
     pass  # native code
 

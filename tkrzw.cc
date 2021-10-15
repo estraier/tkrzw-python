@@ -1693,6 +1693,88 @@ static PyObject* dbm_Rekey(PyDBM* self, PyObject* pyargs) {
   return CreatePyTkStatusMove(std::move(status));
 }
 
+// Implementation of DBM#PopFirst.
+static PyObject* dbm_PopFirst(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pystatus = nullptr;
+  if (argc > 0) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 0);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }  
+  std::string key, value;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->PopFirst(&key, &value);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    PyObject* pykey = CreatePyBytes(key);
+    PyObject* pyvalue = CreatePyBytes(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of DBM#PopFirstStr.
+static PyObject* dbm_PopFirstStr(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc > 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pystatus = nullptr;
+  if (argc > 0) {
+    pystatus = PyTuple_GET_ITEM(pyargs, 0);
+    if (pystatus == Py_None) {
+      pystatus = nullptr;
+    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
+      ThrowInvalidArguments("not a status object");
+      return nullptr;
+    }
+  }  
+  std::string key, value;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->PopFirst(&key, &value);
+  }
+  if (pystatus != nullptr) {
+    *((PyTkStatus*)pystatus)->status = status;
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    PyObject* pykey = CreatePyString(key);
+    PyObject* pyvalue = CreatePyString(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
 // Implementation of DBM#Count.
 static PyObject* dbm_Count(PyDBM* self) {
   if (self->dbm == nullptr) {
@@ -2270,6 +2352,10 @@ static bool DefineDBM() {
      "Compares the values of records and exchanges if the condition meets."},
     {"Rekey", (PyCFunction)dbm_Rekey, METH_VARARGS,
      "Changes the key of a record."},
+    {"PopFirst", (PyCFunction)dbm_PopFirst, METH_VARARGS,
+     "Gets the first record and removes it."},
+    {"PopFirstStr", (PyCFunction)dbm_PopFirstStr, METH_VARARGS,
+     "Gets the first record as strings and removes it."},
     {"Count", (PyCFunction)dbm_Count, METH_NOARGS,
      "Gets the number of records."},
     {"GetFileSize", (PyCFunction)dbm_GetFileSize, METH_NOARGS,
@@ -2787,80 +2873,6 @@ static PyObject* iter_StepStr(PyIterator* self, PyObject* pyargs) {
   Py_RETURN_NONE;
 }
 
-// Implementation of Iterator#PopFirst.
-static PyObject* iter_PopFirst(PyIterator* self, PyObject* pyargs) {
-  const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc > 1) {
-    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
-    return nullptr;
-  }
-  PyObject* pystatus = nullptr;
-  if (argc > 0) {
-    pystatus = PyTuple_GET_ITEM(pyargs, 0);
-    if (pystatus == Py_None) {
-      pystatus = nullptr;
-    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
-      ThrowInvalidArguments("not a status object");
-      return nullptr;
-    }
-  }  
-  std::string key, value;
-  tkrzw::Status status(tkrzw::Status::SUCCESS);
-  {
-    NativeLock lock(self->concurrent);
-    status = self->iter->PopFirst(&key, &value);
-  }
-  if (pystatus != nullptr) {
-    *((PyTkStatus*)pystatus)->status = status;
-  }
-  if (status == tkrzw::Status::SUCCESS) {
-    PyObject* pykey = CreatePyBytes(key);
-    PyObject* pyvalue = CreatePyBytes(value);
-    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
-    Py_DECREF(pyvalue);
-    Py_DECREF(pykey);
-    return pyrv;
-  }
-  Py_RETURN_NONE;
-}
-
-// Implementation of Iterator#PopFirstStr.
-static PyObject* iter_PopFirstStr(PyIterator* self, PyObject* pyargs) {
-  const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc > 1) {
-    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
-    return nullptr;
-  }
-  PyObject* pystatus = nullptr;
-  if (argc > 0) {
-    pystatus = PyTuple_GET_ITEM(pyargs, 0);
-    if (pystatus == Py_None) {
-      pystatus = nullptr;
-    } else if (!PyObject_IsInstance(pystatus, cls_status)) {
-      ThrowInvalidArguments("not a status object");
-      return nullptr;
-    }
-  }  
-  std::string key, value;
-  tkrzw::Status status(tkrzw::Status::SUCCESS);
-  {
-    NativeLock lock(self->concurrent);
-    status = self->iter->PopFirst(&key, &value);
-  }
-  if (pystatus != nullptr) {
-    *((PyTkStatus*)pystatus)->status = status;
-  }
-  if (status == tkrzw::Status::SUCCESS) {
-    PyObject* pykey = CreatePyString(key);
-    PyObject* pyvalue = CreatePyString(value);
-    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
-    Py_DECREF(pyvalue);
-    Py_DECREF(pykey);
-    return pyrv;
-  }
-  Py_RETURN_NONE;
-}
-
 // Implementation of Iterator#__next__.
 static PyObject* iter_iternext(PyIterator* self) {
   std::string key, value;
@@ -2934,10 +2946,6 @@ static bool DefineIterator() {
      "Gets the current record and moves the iterator to the next record."},
     {"StepStr", (PyCFunction)iter_StepStr, METH_VARARGS,
      "Gets the current record and moves the iterator to the next record, as strings."},
-    {"PopFirst", (PyCFunction)iter_PopFirst, METH_VARARGS,
-     "Jumps to the first record, removes it, and get the data."},
-    {"PopFirstStr", (PyCFunction)iter_PopFirstStr, METH_VARARGS,
-     "Jumps to the first record, removes it, and get the data, as strings."},
     {nullptr, nullptr, 0, nullptr}
   };
   type_iter.tp_methods = methods;
