@@ -670,6 +670,18 @@ class DBM:
     """
     pass  # native code
 
+  def PushLast(self, value, wtime=None):
+    """
+    Adds a record with a key of the current timestamp.
+
+    :param value: The value of the record.
+    :param wtime: The current wall time used to generate the key.  If it is None, the system clock is used.
+    :return: The result status.
+
+    The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
+    """
+    pass  # native code
+
   def Count(self):
     """
     Gets the number of records.
@@ -1252,6 +1264,18 @@ class AsyncDBM:
     Gets the first record as strings and removes it.
 
     :return: The future for a tuple of the result status, the string key, and the string value of the first record.
+    """
+    pass  # native code
+
+  def PushLast(self, value, wtime=None):
+    """
+    Adds a record with a key of the current timestamp.
+
+    :param value: The value of the record.
+    :param wtime: The current wall time used to generate the key.  If it is None, the system clock is used.
+    :return: The future for the result status.
+
+    The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
     """
     pass  # native code
 

@@ -439,6 +439,10 @@ class TestTkrzw(unittest.TestCase):
         self.assertEqual(Status.SUCCESS, status)
         pop_count += 1
       self.assertEqual(4, pop_count)
+      self.assertEqual(Status.SUCCESS, export_dbm.PushLast("foo", 0))
+      record = export_dbm.PopFirst()
+      self.assertEqual(record[0], b"\0\0\0\0\0\0\0\0")
+      self.assertEqual(record[1], b"foo")
       self.assertEqual(Status.SUCCESS, export_dbm.Close())
       self.assertEqual(Status.SUCCESS, dbm.Close())
 
@@ -750,6 +754,11 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(Status.SUCCESS, pop_result[0])
     self.assertEqual("cc", pop_result[1])
     self.assertEqual("CCC", pop_result[2])
+    self.assertEqual(Status.SUCCESS, adbm.PushLast("foo", 0).Get())
+    pop_result = adbm.PopFirst().Get()
+    self.assertEqual(Status.SUCCESS, pop_result[0])
+    self.assertEqual(b"\0\0\0\0\0\0\0\0", pop_result[1])
+    self.assertEqual(b"foo", pop_result[2])
     adbm.Destruct()
     self.assertEqual(Status.SUCCESS, dbm.Close())
     

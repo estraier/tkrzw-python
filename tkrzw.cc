@@ -1792,6 +1792,28 @@ static PyObject* dbm_PopFirstStr(PyDBM* self, PyObject* pyargs) {
   Py_RETURN_NONE;
 }
 
+// Implementation of DBM#PushLast.
+static PyObject* dbm_PushLast(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 2) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 0);
+  const double wtime = argc > 1 ? PyObjToDouble(PyTuple_GET_ITEM(pyargs, 1)) : -1;
+  SoftString value(pyvalue);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->PushLast(value.Get(), wtime);
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
 // Implementation of DBM#Count.
 static PyObject* dbm_Count(PyDBM* self) {
   if (self->dbm == nullptr) {
@@ -2373,6 +2395,8 @@ static bool DefineDBM() {
      "Gets the first record and removes it."},
     {"PopFirstStr", (PyCFunction)dbm_PopFirstStr, METH_VARARGS,
      "Gets the first record as strings and removes it."},
+    {"PushLast", (PyCFunction)dbm_PushLast, METH_VARARGS,
+     "Adds a record with a key of the current timestamp."},
     {"Count", (PyCFunction)dbm_Count, METH_NOARGS,
      "Gets the number of records."},
     {"GetFileSize", (PyCFunction)dbm_GetFileSize, METH_NOARGS,
@@ -3360,6 +3384,24 @@ static PyObject* asyncdbm_PopFirstStr(PyAsyncDBM* self) {
   return CreatePyFutureMove(std::move(future), self->concurrent, true);
 }
 
+// Implementation of AsyncDBM#PushLast.
+static PyObject* asyncdbm_PushLast(PyAsyncDBM* self, PyObject* pyargs) {
+  if (self->async == nullptr) {
+    ThrowInvalidArguments("destructed object");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 2) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 0);
+  const double wtime = argc > 1 ? PyObjToDouble(PyTuple_GET_ITEM(pyargs, 1)) : -1;
+  SoftString value(pyvalue);
+  tkrzw::StatusFuture future(self->async->PushLast(value.Get(), wtime));
+  return CreatePyFutureMove(std::move(future), self->concurrent);
+}
+
 // Implementation of AsyncDBM#Clear.
 static PyObject* asyncdbm_Clear(PyAsyncDBM* self) {
   if (self->async == nullptr) {
@@ -3580,6 +3622,8 @@ static bool DefineAsyncDBM() {
      "Gets the first record and removes it."},
     {"PopFirstStr", (PyCFunction)asyncdbm_PopFirstStr, METH_NOARGS,
      "Gets the first record as strings and removes it."},
+    {"PushLast", (PyCFunction)asyncdbm_PushLast, METH_VARARGS,
+     "Adds a record with a key of the current timestamp."},
     {"Clear", (PyCFunction)asyncdbm_Clear, METH_NOARGS,
      "Removes all records."},
     {"Rebuild", (PyCFunction)asyncdbm_Rebuild, METH_VARARGS | METH_KEYWORDS,
