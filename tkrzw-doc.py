@@ -216,6 +216,7 @@ class Status:
     :param: code The status code.
     :return: The name of the status code.
     """
+    pass  # native code
 
 
 class Future:
@@ -636,6 +637,51 @@ class DBM:
     """
     pass  # native code
 
+  def Rekey(old_key, new_key, overwrite=True, copying=False):
+    """
+    Changes the key of a record.
+
+    :param old_key: The old key of the record.
+    :param new_key: The new key of the record.
+    :param overwrite: Whether to overwrite the existing record of the new key.
+    :param copying: Whether to retain the record of the old key.
+
+    :return: The result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is returned.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is returned.
+
+    This method is done atomically.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+    """
+    pass  # native code
+
+  def PopFirst(self, status=None):
+    """
+    Gets the first record and removes it.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the bytes key and the bytes value of the first record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def PopFirstStr(self, status=None):
+    """
+    Gets the first record as strings and removes it.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the string key and the string value of the first record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def PushLast(self, value, wtime=None):
+    """
+    Adds a record with a key of the current timestamp.
+
+    :param value: The value of the record.
+    :param wtime: The current wall time used to generate the key.  If it is None, the system clock is used.
+    :return: The result status.
+
+    The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
+    """
+    pass  # native code
+
   def Count(self):
     """
     Gets the number of records.
@@ -1016,6 +1062,24 @@ class Iterator:
     """
     pass  # native code
 
+  def Step(self, status=None):
+    """
+    Gets the current record and moves the iterator to the next record.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the bytes key and the bytes value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def StepStr(self, status=None):
+    """
+    Gets the current record and moves the iterator to the next record, as strings.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the string key and the string value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
 
 class AsyncDBM:
   """
@@ -1168,7 +1232,50 @@ class AsyncDBM:
 
     :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.
     :param desired: A sequence of pairs of the record keys and their desired values.  If the value is None, the record is to be removed.
-    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
+    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is set.
+    """
+    pass  # native code
+
+  def Rekey(old_key, new_key, overwrite=True, copying=False):
+    """
+    Changes the key of a record.
+
+    :param old_key: The old key of the record.
+    :param new_key: The new key of the record.
+    :param overwrite: Whether to overwrite the existing record of the new key.
+    :param copying: Whether to retain the record of the old key.
+
+    :return: The future for the result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is set.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is set.
+
+    This method is done atomically.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+    """
+    pass  # native code
+
+  def PopFirst(self):
+    """
+    Gets the first record and removes it.
+
+    :return: The future for a tuple of the result status, the bytes key, and the bytes value of the first record.
+    """
+    pass  # native code
+
+  def PopFirstStr(self):
+    """
+    Gets the first record as strings and removes it.
+
+    :return: The future for a tuple of the result status, the string key, and the string value of the first record.
+    """
+    pass  # native code
+
+  def PushLast(self, value, wtime=None):
+    """
+    Adds a record with a key of the current timestamp.
+
+    :param value: The value of the record.
+    :param wtime: The current wall time used to generate the key.  If it is None, the system clock is used.
+    :return: The future for the result status.
+
+    The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
     """
     pass  # native code
 
