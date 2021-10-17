@@ -1,6 +1,6 @@
 2021-10-10  Mikio Hirabayashi  <hirarin@gmail.com>
 
-	- Release: 0.1.24
+	- Release: 0.1.25
 
 	- lock_mem_buckets is ablished.
 	- Compatibility to the C++ library: Tkrzw 1.0.17
