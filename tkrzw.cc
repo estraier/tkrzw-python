@@ -108,7 +108,7 @@ struct PyFile {
 
 // Creates a new string of Python.
 static PyObject* CreatePyString(std::string_view str) {
-  return PyUnicode_DecodeUTF8(str.data(), str.size(), "ignore");
+  return PyUnicode_DecodeUTF8(str.data(), str.size(), "replace");
 }
 
 // Creatse a new byte array of Python.

@@ -5,6 +5,7 @@
 	- Add DBM::Rekey.
 	- Add Iterator::Step.
 	- Add DBM::PopFirst and DBM::PushLast.
+	- Conversion from bytes to Unicode uses "replace" mode.
 	- Compatibility to the C++ library: Tkrzw 1.0.18
 
 2021-10-10  Mikio Hirabayashi  <hirarin@gmail.com>
