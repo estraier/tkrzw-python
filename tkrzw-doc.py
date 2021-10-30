@@ -322,6 +322,9 @@ class DBM:
   This class implements the iterable protocol so an instance is usable with "for-in" loop.
   """
 
+  ANY_DATA = b"\x00[ANY]\x00"
+  """The special bytes value for no-operation or any data."""
+
   def __init__(self):
     """
     Does nothing especially.
@@ -607,8 +610,8 @@ class DBM:
     Compares the value of a record and exchanges if the condition meets.
 
     :param key: The key of the record.
-    :param expected: The expected value.  If it is None, no existing record is expected.
-    :param desired: The desired value.  If it is None, the record is to be removed.
+    :param expected: The expected value.  If it is None, no existing record is expected.  If it is ANY_DATA, an existing record with any value is expacted.
+    :param desired: The desired value.  If it is None, the record is to be removed.  If it is ANY_DATA, no update is done.
     :return: The result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
     """
     pass  # native code
@@ -631,7 +634,7 @@ class DBM:
     """
     Compares the values of records and exchanges if the condition meets.
 
-    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.
+    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.  If the value is ANY_DATA, an existing record with any value is expacted.
     :param desired: A sequence of pairs of the record keys and their desired values.  If the value is None, the record is to be removed.
     :return: The result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
     """
@@ -1207,8 +1210,8 @@ class AsyncDBM:
     Compares the value of a record and exchanges if the condition meets.
 
     :param key: The key of the record.
-    :param expected: The expected value.  If it is None, no existing record is expected.
-    :param desired: The desired value.  If it is None, the record is to be removed.
+    :param expected: The expected value.  If it is None, no existing record is expected.  If it is DBM.ANY_DATA, an existing record with any value is expacted.
+    :param desired: The desired value.  If it is None, the record is to be removed.  If it is None, the record is to be removed.  If it is DBM.ANY_DATA, no update is done.
     :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is set.
     """
     pass  # native code
@@ -1230,7 +1233,7 @@ class AsyncDBM:
     """
     Compares the values of records and exchanges if the condition meets.
 
-    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.
+    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.  If the value is DBM.ANY_DATA, an existing record with any value is expacted.
     :param desired: A sequence of pairs of the record keys and their desired values.  If the value is None, the record is to be removed.
     :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is set.
     """

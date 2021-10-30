@@ -1,3 +1,10 @@
+2021-10-30  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.26
+
+	- DBM::CompareExchange supports ANY_DATA.
+	- Compatibility to the C++ library: Tkrzw 1.0.19
+
 2021-10-12  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.25

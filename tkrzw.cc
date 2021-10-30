@@ -50,8 +50,7 @@ PyObject* cls_dbm;
 PyObject* cls_iter;
 PyObject* cls_asyncdbm;
 PyObject* cls_file;
-PyObject* obj_proc_noop;
-PyObject* obj_proc_remove;
+PyObject* obj_dbm_any_data;
 
 // Python object of Utility.
 struct PyUtility {
@@ -359,9 +358,13 @@ static std::vector<std::pair<std::string_view, std::string_view>> ExtractSVPairs
         std::string_view key_view = placeholder->back();
         std::string_view value_view;
         if (pyvalue != Py_None) {
-          SoftString value(pyvalue);
-          placeholder->emplace_back(std::string(value.Get()));
-          value_view = placeholder->back();
+          if (pyvalue == obj_dbm_any_data) {
+            value_view = tkrzw::DBM::ANY_DATA;
+          } else {
+            SoftString value(pyvalue);
+            placeholder->emplace_back(std::string(value.Get()));
+            value_view = placeholder->back();
+          }
         }
         result.emplace_back(std::make_pair(key_view, value_view));
       }
@@ -1591,14 +1594,22 @@ static PyObject* dbm_CompareExchange(PyDBM* self, PyObject* pyargs) {
   std::unique_ptr<SoftString> expected;
   std::string_view expected_view;
   if (pyexpected != Py_None) {
-    expected = std::make_unique<SoftString>(pyexpected);
-    expected_view = expected->Get();
+    if (pyexpected == obj_dbm_any_data) {
+      expected_view = tkrzw::DBM::ANY_DATA;
+    } else {
+      expected = std::make_unique<SoftString>(pyexpected);
+      expected_view = expected->Get();
+    }
   }
   std::unique_ptr<SoftString> desired;
   std::string_view desired_view;
   if (pydesired != Py_None) {
-    desired = std::make_unique<SoftString>(pydesired);
-    desired_view = desired->Get();
+    if (pydesired == obj_dbm_any_data) {
+      desired_view = tkrzw::DBM::ANY_DATA;
+    } else {
+      desired = std::make_unique<SoftString>(pydesired);
+      desired_view = desired->Get();
+    }
   }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
@@ -2452,6 +2463,11 @@ static bool DefineDBM() {
   if (PyType_Ready(&type_dbm) != 0) return false;
   cls_dbm = (PyObject*)&type_dbm;
   Py_INCREF(cls_dbm);
+  obj_dbm_any_data = PyBytes_FromStringAndSize("\0[ANY]\0", 7);
+  if (PyObject_GenericSetAttr(
+          cls_dbm, PyUnicode_FromString("ANY_DATA"), obj_dbm_any_data) != 0) {
+    return false;
+  }
   if (PyModule_AddObject(mod_tkrzw, "DBM", cls_dbm) != 0) return false;
   return true;
 }
@@ -3276,14 +3292,22 @@ static PyObject* asyncdbm_CompareExchange(PyAsyncDBM* self, PyObject* pyargs) {
   std::unique_ptr<SoftString> expected;
   std::string_view expected_view;
   if (pyexpected != Py_None) {
-    expected = std::make_unique<SoftString>(pyexpected);
-    expected_view = expected->Get();
+    if (pyexpected == obj_dbm_any_data) {
+      expected_view = tkrzw::DBM::ANY_DATA;
+    } else {
+      expected = std::make_unique<SoftString>(pyexpected);
+      expected_view = expected->Get();
+    }
   }
   std::unique_ptr<SoftString> desired;
   std::string_view desired_view;
   if (pydesired != Py_None) {
-    desired = std::make_unique<SoftString>(pydesired);
-    desired_view = desired->Get();
+    if (pydesired == obj_dbm_any_data) {
+      desired_view = tkrzw::DBM::ANY_DATA;
+    } else {
+      desired = std::make_unique<SoftString>(pydesired);
+      desired_view = desired->Get();
+    }
   }
   tkrzw::StatusFuture future(self->async->CompareExchange(
       key.Get(), expected_view, desired_view));

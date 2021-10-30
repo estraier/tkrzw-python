@@ -333,6 +333,18 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.INFEASIBLE_ERROR, export_dbm.CompareExchange("1", None, "yyy"))
       self.assertEqual("zzz", export_dbm.GetStr("1", status))
       self.assertEqual(Status.SUCCESS, export_dbm.CompareExchange("1", "zzz", None))
+      self.assertEqual(Status.INFEASIBLE_ERROR, export_dbm.CompareExchange(
+        "xyz", DBM.ANY_DATA, DBM.ANY_DATA))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchange("xyz", None, "abc"))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchange(
+        "xyz", DBM.ANY_DATA, DBM.ANY_DATA))
+      self.assertEqual("abc", export_dbm.GetStr("xyz", status))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchange(
+        "xyz", DBM.ANY_DATA, "def"))
+      self.assertEqual("def", export_dbm.GetStr("xyz", status))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchange(
+        "xyz", DBM.ANY_DATA, None))
+      self.assertTrue(export_dbm.GetStr("xyz", status) == None)
       self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
         (("hop", None), ("step", None)),
         (("hop", "one"), ("step", "two"))))
@@ -350,9 +362,19 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual("2", export_dbm.GetStr("step"))
       self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
         (("hop", "1"), ("step", "2")),
-        (("hop", None), ("step", None))))
+        (("hop", None), ("step", None))))      
       self.assertEqual(None, export_dbm.GetStr("hop"))
       self.assertEqual(None, export_dbm.GetStr("step"))
+      self.assertEqual(Status.INFEASIBLE_ERROR, export_dbm.CompareExchangeMulti(
+        [("xyz", DBM.ANY_DATA)], [("xyz", "abc")]))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
+        [("xyz", None)], [("xyz", "abc")]))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
+        [("xyz", DBM.ANY_DATA)], [("xyz", "def")]))
+      self.assertEqual("def", export_dbm.GetStr("xyz"))
+      self.assertEqual(Status.SUCCESS, export_dbm.CompareExchangeMulti(
+        [("xyz", DBM.ANY_DATA)], [("xyz", None)]))
+      self.assertEqual(None, export_dbm.GetStr("xyz"))
       export_iter = export_dbm.MakeIterator()
       self.assertEqual(Status.SUCCESS, export_iter.First())
       self.assertEqual(Status.SUCCESS, export_iter.Set("foobar"))
@@ -699,12 +721,33 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual("ichi", adbm.GetStr("one").Get()[1])
     self.assertEqual(Status.SUCCESS, adbm.CompareExchange("one", "ichi", "ni").Get())
     self.assertEqual("ni", adbm.GetStr("one").Get()[1])
+    self.assertEqual(Status.INFEASIBLE_ERROR, adbm.CompareExchange(
+      "xyz", DBM.ANY_DATA, DBM.ANY_DATA).Get())
+    self.assertEqual(Status.SUCCESS, adbm.CompareExchange(
+      "xyz", None, "abc").Get())
+    self.assertEqual(Status.SUCCESS, adbm.CompareExchange(
+      "xyz", DBM.ANY_DATA, DBM.ANY_DATA).Get())
+    self.assertEqual("abc", adbm.GetStr("xyz").Get()[1])
+    self.assertEqual(Status.SUCCESS, adbm.CompareExchange("xyz", DBM.ANY_DATA, "def").Get())
+    self.assertEqual("def", adbm.GetStr("xyz").Get()[1])
+    self.assertEqual(Status.SUCCESS, adbm.CompareExchange("xyz", DBM.ANY_DATA, None).Get())
+    self.assertEqual(Status.NOT_FOUND_ERROR, adbm.GetStr("xyz").Get()[0])
     self.assertEqual(Status.SUCCESS, adbm.CompareExchangeMulti(
       [("one", "ni"), ("two", None)], [("one", "san"), ("two", "uno")]).Get())
     self.assertEqual("san", adbm.GetStr("one").Get()[1])
     self.assertEqual("uno", adbm.GetStr("two").Get()[1])
     self.assertEqual(Status.SUCCESS, adbm.CompareExchangeMulti(
       [("one", "san"), ("two", "uno")], [("one", None), ("two", None)]).Get())
+    self.assertEqual(Status.INFEASIBLE_ERROR, adbm.CompareExchangeMulti(
+      [("xyz", DBM.ANY_DATA)], [("xyz", "abc")]).Get())
+    self.assertEqual(Status.SUCCESS, adbm.CompareExchangeMulti(
+      [("xyz", None)], [("xyz", "abc")]).Get())
+    self.assertEqual(Status.SUCCESS, adbm.CompareExchangeMulti(
+      [("xyz", DBM.ANY_DATA)], [("xyz", "abc")]).Get())
+    self.assertEqual("abc", adbm.GetStr("xyz").Get()[1])
+    self.assertEqual(Status.SUCCESS, adbm.CompareExchangeMulti(
+      [("xyz", DBM.ANY_DATA)], [("xyz", None)]).Get())
+    self.assertEqual(Status.NOT_FOUND_ERROR, adbm.GetStr("xyz").Get()[0])
     self.assertEqual(0, dbm.Count())
     self.assertEqual(Status.SUCCESS, adbm.Set("hello", "world", False).Get())
     self.assertEqual(Status.SUCCESS, adbm.Synchronize(False).Get())
