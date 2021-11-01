@@ -350,6 +350,15 @@ class TestTkrzw(unittest.TestCase):
         (("hop", "one"), ("step", "two"))))
       self.assertEqual("one", export_dbm.GetStr("hop"))
       self.assertEqual("two", export_dbm.GetStr("step"))
+      status, value = export_dbm.CompareExchangeAndGet("xyz", None, "123");
+      self.assertEqual(Status.SUCCESS, status)
+      self.assertEqual(None, value)
+      status, value = export_dbm.CompareExchangeAndGet("xyz", "123", DBM.ANY_DATA);
+      self.assertEqual(Status.SUCCESS, status)
+      self.assertEqual("123", value)
+      status, value = export_dbm.CompareExchangeAndGet("xyz", DBM.ANY_DATA, None);
+      self.assertEqual(Status.SUCCESS, status)
+      self.assertEqual(b"123", value)
       self.assertEqual(Status.INFEASIBLE_ERROR, export_dbm.CompareExchangeMulti(
         (("hop", "one"), ("step", None)),
         (("hop", "uno"), ("step", "dos"))))

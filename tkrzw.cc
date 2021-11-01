@@ -1619,6 +1619,61 @@ static PyObject* dbm_CompareExchange(PyDBM* self, PyObject* pyargs) {
   return CreatePyTkStatusMove(std::move(status));
 }
 
+// Implementation of DBM#CompareExchangeAndGet.
+static PyObject* dbm_CompareExchangeAndGet(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 3) {
+    ThrowInvalidArguments(argc < 3 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyexpected = PyTuple_GET_ITEM(pyargs, 1);
+  PyObject* pydesired = PyTuple_GET_ITEM(pyargs, 2);
+  SoftString key(pykey);
+  std::unique_ptr<SoftString> expected;
+  std::string_view expected_view;
+  if (pyexpected != Py_None) {
+    if (pyexpected == obj_dbm_any_data) {
+      expected_view = tkrzw::DBM::ANY_DATA;
+    } else {
+      expected = std::make_unique<SoftString>(pyexpected);
+      expected_view = expected->Get();
+    }
+  }
+  std::unique_ptr<SoftString> desired;
+  std::string_view desired_view;
+  if (pydesired != Py_None) {
+    if (pydesired == obj_dbm_any_data) {
+      desired_view = tkrzw::DBM::ANY_DATA;
+    } else {
+      desired = std::make_unique<SoftString>(pydesired);
+      desired_view = desired->Get();
+    }
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  std::string actual;
+  bool found = false;
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->CompareExchange(key.Get(), expected_view, desired_view, &actual, &found);
+  }
+  PyObject* pytuple = PyTuple_New(2);
+  PyTuple_SET_ITEM(pytuple, 0, CreatePyTkStatusMove(std::move(status)));
+  if (found) {
+    PyObject* pyactual = PyUnicode_Check(pyexpected) || PyUnicode_Check(pydesired) ?
+        CreatePyString(actual) : CreatePyBytes(actual);
+    PyTuple_SET_ITEM(pytuple, 1, pyactual);
+  } else {
+    Py_INCREF(Py_None);
+    PyTuple_SET_ITEM(pytuple, 1, Py_None);
+  }
+  return pytuple;
+}
+
 // Implementation of DBM#Increment.
 static PyObject* dbm_Increment(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
@@ -2396,6 +2451,8 @@ static bool DefineDBM() {
      "Appends data to multiple records of the keyword arguments."},
     {"CompareExchange", (PyCFunction)dbm_CompareExchange, METH_VARARGS,
      "Compares the value of a record and exchanges if the condition meets."},
+    {"CompareExchangeAndGet", (PyCFunction)dbm_CompareExchangeAndGet, METH_VARARGS,
+     "Does compare-and-exchange and/or gets the old value of the record."},
     {"Increment", (PyCFunction)dbm_Increment, METH_VARARGS,
      "Increments the numeric value of a record."},
     {"CompareExchangeMulti", (PyCFunction)dbm_CompareExchangeMulti, METH_VARARGS,
