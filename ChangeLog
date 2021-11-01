@@ -1,3 +1,10 @@
+2021-11-02  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.27
+
+	- DBM::CompareExchangeAndGet is added.
+	- Compatibility to the C++ library: Tkrzw 1.0.20
+
 2021-10-30  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.26
