@@ -623,7 +623,7 @@ class DBM:
     :param key: The key of the record.
     :param expected: The expected value.  If it is None, no existing record is expected.  If it is ANY_DATA, an existing record with any value is expacted.
     :param desired: The desired value.  If it is None, the record is to be removed.  If it is ANY_DATA, no update is done.
-    :return: The result status and the.old value of the record  If the condition doesn't meet, the state is INFEASIBLE_ERROR.  If there's no existing record, the value is None.  If not None, the type of the returned old value is the same as the expected or desired value.
+    :return: A pair of the result status and the.old value of the record.  If the condition doesn't meet, the state is INFEASIBLE_ERROR.  If there's no existing record, the value is None.  If not None, the type of the returned old value is the same as the expected or desired value.
     """
     pass  # native code
 
