@@ -899,12 +899,12 @@ static PyObject* future_Get(PyFuture* self) {
     lock.Release();
     delete self->future;
     self->future = nullptr;
-    PyObject* pyrv = PyList_New(2);
-    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyObject* pyrv = PyTuple_New(2);
+    PyTuple_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     if (self->is_str) {
-      PyList_SET_ITEM(pyrv, 1, CreatePyString(result.second));
+      PyTuple_SET_ITEM(pyrv, 1, CreatePyString(result.second));
     } else {
-      PyList_SET_ITEM(pyrv, 1, CreatePyBytes(result.second));
+      PyTuple_SET_ITEM(pyrv, 1, CreatePyBytes(result.second));
     }
     return pyrv;
   }
@@ -914,14 +914,14 @@ static PyObject* future_Get(PyFuture* self) {
     lock.Release();
     delete self->future;
     self->future = nullptr;
-    PyObject* pyrv = PyList_New(3);
-    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyObject* pyrv = PyTuple_New(3);
+    PyTuple_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     if (self->is_str) {
-      PyList_SET_ITEM(pyrv, 1, CreatePyString(result.second.first));
-      PyList_SET_ITEM(pyrv, 2, CreatePyString(result.second.second));
+      PyTuple_SET_ITEM(pyrv, 1, CreatePyString(result.second.first));
+      PyTuple_SET_ITEM(pyrv, 2, CreatePyString(result.second.second));
     } else {
-      PyList_SET_ITEM(pyrv, 1, CreatePyBytes(result.second.first));
-      PyList_SET_ITEM(pyrv, 2, CreatePyBytes(result.second.second));
+      PyTuple_SET_ITEM(pyrv, 1, CreatePyBytes(result.second.first));
+      PyTuple_SET_ITEM(pyrv, 2, CreatePyBytes(result.second.second));
     }
     return pyrv;
   }
@@ -931,17 +931,17 @@ static PyObject* future_Get(PyFuture* self) {
     lock.Release();
     delete self->future;
     self->future = nullptr;
-    PyObject* pyrv = PyList_New(2);
-    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
-    PyObject* pylist = PyList_New(result.second.size());
+    PyObject* pyrv = PyTuple_New(2);
+    PyTuple_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyObject* pylist = PyTuple_New(result.second.size());
     for (size_t i = 0; i < result.second.size(); i++) {
       if (self->is_str) {
-        PyList_SET_ITEM(pylist, i, CreatePyString(result.second[i]));
+        PyTuple_SET_ITEM(pylist, i, CreatePyString(result.second[i]));
       } else {
-        PyList_SET_ITEM(pylist, i, CreatePyBytes(result.second[i]));
+        PyTuple_SET_ITEM(pylist, i, CreatePyBytes(result.second[i]));
       }
     }
-    PyList_SET_ITEM(pyrv, 1, pylist);
+    PyTuple_SET_ITEM(pyrv, 1, pylist);
     return pyrv;
   }
   if (type == typeid(std::pair<tkrzw::Status, std::map<std::string, std::string>>)) {
@@ -950,8 +950,8 @@ static PyObject* future_Get(PyFuture* self) {
     lock.Release();
     delete self->future;
     self->future = nullptr;
-    PyObject* pyrv = PyList_New(2);
-    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyObject* pyrv = PyTuple_New(2);
+    PyTuple_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
     PyObject* pydict = PyDict_New();
     for (const auto& rec : result.second) {
       if (self->is_str) {
@@ -968,7 +968,7 @@ static PyObject* future_Get(PyFuture* self) {
         Py_DECREF(pykey);
       }
     }
-    PyList_SET_ITEM(pyrv, 1, pydict);
+    PyTuple_SET_ITEM(pyrv, 1, pydict);
     return pyrv;
   }
   if (type == typeid(std::pair<tkrzw::Status, int64_t>)) {
@@ -977,9 +977,9 @@ static PyObject* future_Get(PyFuture* self) {
     lock.Release();
     delete self->future;
     self->future = nullptr;
-    PyObject* pyrv = PyList_New(2);
-    PyList_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
-    PyList_SET_ITEM(pyrv, 1, PyLong_FromLongLong(result.second));
+    PyObject* pyrv = PyTuple_New(2);
+    PyTuple_SET_ITEM(pyrv, 0, CreatePyTkStatus(std::move(result.first)));
+    PyTuple_SET_ITEM(pyrv, 1, PyLong_FromLongLong(result.second));
     return pyrv;
   }
   ThrowStatusException(tkrzw::Status(tkrzw::Status::NOT_IMPLEMENTED_ERROR));
