@@ -68,7 +68,7 @@ if len(libraries) < 1:
     if (os.uname()[0] == "Darwin"):
         libraries = ['tkrzw', 'stdc++', 'pthread', 'm', 'c']
     else:
-        libraries = ['tkrzw', 'stdc++', 'rt', 'pthread', 'm', 'c']
+        libraries = ['tkrzw', 'stdc++', 'rt', 'atomic', 'pthread', 'm', 'c']
 
 module = Extension(module_name,
                    include_dirs = include_dirs,
