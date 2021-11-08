@@ -7,12 +7,17 @@ Please read the following documents.
   COPYING           - license
   CONTRIBUTING.md   - how to contribute
 
+You should install the latest version of Tkrzw to make sure the
+compatibility.
+
 To build the library, Python 3.6 or later version is required.
 Then, run these commands.
 
   make
   make check
   sudo make install
+
+See https://dbmx.net/tkrzw/api-python/ for details of the API.
 
 Thanks.
 

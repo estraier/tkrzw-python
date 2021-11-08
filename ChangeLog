@@ -1,3 +1,124 @@
+2021-11-02  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.27
+
+	- DBM::CompareExchangeAndGet is added.
+	- Compatibility to the C++ library: Tkrzw 1.0.20
+
+2021-10-30  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.26
+
+	- DBM::CompareExchange supports ANY_DATA.
+	- Compatibility to the C++ library: Tkrzw 1.0.19
+
+2021-10-12  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.25
+
+	- Add DBM::Rekey.
+	- Add Iterator::Step.
+	- Add DBM::PopFirst and DBM::PushLast.
+	- Conversion from bytes to Unicode uses "replace" mode.
+	- Compatibility to the C++ library: Tkrzw 1.0.18
+
+2021-10-10  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.24
+
+	- lock_mem_buckets is ablished.
+	- Compatibility to the C++ library: Tkrzw 1.0.17
+	- Add Status.CodeName.
+
+2021-09-20  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.23
+
+	- sync_hard of the open options is supported.
+	- Compatibility to the C++ library: Tkrzw 1.0.12
+
+2021-09-19  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.22
+
+	- Add GetTimestamp method.
+	- Compatibility to the C++ library: Tkrzw 1.0.11
+
+2021-08-27  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.21
+
+	- Compatibility to the C++ library: Tkrzw 1.0.7
+
+2021-08-21  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.20
+
+	- Compatibility to the C++ library: Tkrzw 1.0.2
+
+2021-08-02  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.19
+
+	- Future#Get releases the resource.
+
+2021-07-29  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.18
+
+	- Add Join method to Status.
+	- Add AsyncDBM class.
+
+2021-07-28  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.17
+
+	- Modify export methods.
+	- Compatibility to the C++ library: Tkrzw 0.9.48
+
+2021-07-25  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.16
+
+	- Add PAGE_SIZE constant.
+	- Add File.GetPath method.
+	- Compatibility to the C++ library: Tkrzw 0.9.47
+
+2021-07-23  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.15
+
+	- Add IsWritable method.
+
+2021-07-14  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.14
+
+	- Add AppendMulti method.
+	- Compatibility to the C++ library: Tkrzw 0.9.43
+
+2021-07-12  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.13
+
+	- Add exporting methods to the flat record file.
+	- Compatibility to the C++ library: Tkrzw 0.9.42
+
+2021-07-08  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.12
+
+	- Modify DBM::Search for the latest C++ API.
+	- Compatibility to the C++ library: Tkrzw 0.9.40
+
+2021-07-05  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.11
+
+	- The RestoreDatabase method is added.
+	- TextFile is renamed to File.
+	- Compatibility to the C++ library: Tkrzw 0.9.38
+
 2021-06-02  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.10

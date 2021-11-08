@@ -2,14 +2,17 @@ Module and Classes
 ==================
 
 .. autosummary::
+   :nosignatures:
 
    tkrzw
    tkrzw.Utility
    tkrzw.Status
    tkrzw.StatusException
+   tkrzw.Future
    tkrzw.DBM
    tkrzw.Iterator
-   tkrzw.TextFile
+   tkrzw.AsyncDBM
+   tkrzw.File
 
 Introduction
 ============
@@ -27,7 +30,7 @@ Tkrzw is a library implementing DBM with various algorithms.  It features high d
   - StdHashDBM : On-memory DBM implementations using std::unordered_map.
   - StdTreeDBM : On-memory DBM implementations using std::map.
 
-Whereas Tkrzw is C++ library, this package provides its Python interface.  All above data structures are available via one adapter class ":class:`DBM`".  Read the `homepage <http://dbmx.net/tkrzw/>`_ for details.
+Whereas Tkrzw is C++ library, this package provides its Python interface.  All above data structures are available via one adapter class ":class:`DBM`".  Read the `homepage <https://dbmx.net/tkrzw/>`_ for details.
 
 DBM stores key-value pairs of strings.  Each string is represented as bytes in Python.  You can specify any type of objects as keys and values if they can be converted into strings, which are "encoded" into bytes.  When you retreive the value of a record, the type is determined according to the method: Get for bytes, GetStr for string, or [] for the same type as the key.
 
@@ -130,18 +133,59 @@ The following code is a more complex example.  Resources of DBM and Iterator are
  dbm.Rebuild(align_pow=0, max_page_size=1024).OrDie()
 
  # Traverses records with an iterator.
- it = dbm.MakeIterator()
- it.First()
+ iter = dbm.MakeIterator()
+ iter.First()
  while True:
      status = tkrzw.Status()
-     record = it.GetStr(status)
+     record = iter.GetStr(status)
      if not status.IsOK():
          break
      print(record[0], record[1])
-     it.Next()
+     iter.Next()
 
  # Closes the database.
- dbm.Close()
+ dbm.Close().OrDie()
+
+The following code is a typical example of coroutine usage.  The AsyncDBM class manages a thread pool and handles database operations in the background in parallel.  Each Method of AsyncDBM returns a Future object to monitor the result.  The Future class implements the awaitable protocol so that the instance is usable with the "await" sentence to await the operation while yielding the execution ownership.::
+
+ import asyncio
+ import tkrzw
+
+ async def main():
+     # Prepares the database.
+     dbm = tkrzw.DBM()
+     dbm.Open("casket.tkh", True, truncate=True, num_buckets=100)
+
+     # Prepares the asynchronous adapter with 4 worker threads.
+     adbm = tkrzw.AsyncDBM(dbm, 4)
+
+     # Executes the Set method asynchronously.
+     future = adbm.Set("hello", "world")
+     # Does something in the foreground.
+     print("Setting a record")
+     # Checks the result after awaiting the Set operation.
+     # Calling Future#Get doesn't yield the coroutine ownership.
+     status = future.Get()
+     if status != tkrzw.Status.SUCCESS:
+         print("ERROR: " + str(status))
+
+     # Executes the Get method asynchronously.
+     future = adbm.GetStr("hello")
+     # Does something in the foreground.
+     print("Getting a record")
+     # Awaits the operation while yielding the execution ownership.
+     await future
+     status, value = future.Get()
+     if status == tkrzw.Status.SUCCESS:
+         print("VALUE: " + value)
+
+     # Releases the asynchronous adapter.
+     adbm.Destruct()
+
+     # Closes the database.
+     dbm.Close()
+
+ asyncio.run(main())
 
 Indices and tables
 ==================
@@ -155,5 +199,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-  

@@ -1,7 +1,7 @@
 # Makefile for Tkrzw for Python
 
 PACKAGE = tkrzw-python
-VERSION = 0.1.10
+VERSION = 0.1.27
 PACKAGEDIR = $(PACKAGE)-$(VERSION)
 PACKAGETGZ = $(PACKAGE)-$(VERSION).tar.gz
 
@@ -17,7 +17,8 @@ all :
 	@printf '#================================================================\n'
 
 clean :
-	rm -rf casket casket* *~ *.tmp *.tkh *.tkt *.tks *.so *.pyc build hoge moge tako ika
+	rm -rf casket casket* *~ *.tmp *.tkh *.tkt *.tks *.flat *.log *.so *.pyc build \
+	  hoge moge tako ika uni
 
 install :
 	$(PYTHON) setup.py install
@@ -59,9 +60,9 @@ check :
 	$(RUNENV) $(PYTHON) perf.py --params "dbm=baby,key_comparator=decimal" \
 	  --iter 20000 --threads 5 --random
 	$(RUNENV) $(PYTHON) perf.py --params "dbm=stdhash,num_buckets=100000" \
-	  --iter 20000 --threads 5 --random
+	  --iter 20000 --threads 5 --async_threads 2 --random
 	$(RUNENV) $(PYTHON) perf.py --params "dbm=stdtree" \
-	  --iter 20000 --threads 5 --random
+	  --iter 20000 --threads 5 --async_threads 2 --random
 	$(RUNENV) $(PYTHON) wicked.py --path casket.tkh --params "num_buckets=100000" \
 	  --iter 20000 --threads 5
 	$(RUNENV) $(PYTHON) wicked.py --path casket.tkt --params "key_comparator=decimal" \
@@ -90,8 +91,9 @@ apidoc :
 	echo >> tmp-doc/out/conf.py.tmp
 	echo "autodoc_member_order = 'bysource'" >> tmp-doc/out/conf.py.tmp
 	echo "html_title = 'Python binding of Tkrzw'" >> tmp-doc/out/conf.py.tmp
+	echo "autodoc_default_options = {'members': True, 'special-members': True, 'exclude-members': '__dict__,__module__,__weakref__'}"  >> tmp-doc/out/conf.py.tmp
 	mv -f tmp-doc/out/conf.py.tmp tmp-doc/out/conf.py
-	cp -f tkrzw-index.rst tmp-doc/out/index.rst
+	cp -f index.rst tmp-doc/out/index.rst
 	cd tmp-doc/out ; $(MAKE) html
 	mv tmp-doc/out/_build/html api-doc
 

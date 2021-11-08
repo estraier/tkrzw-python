@@ -15,10 +15,16 @@
 
 
 class Utility:
-  """Library utilities."""
+  """
+  Library utilities.
+  """
 
   VERSION = "0.0.0"
   """The package version numbers."""
+  OS_NAME = "unknown"
+  """The recognized OS name."""
+  PAGE_SIZE = 4096
+  """The size of a memory page on the OS."""
   INT32MIN = -2 ** 31
   """The minimum value of int32."""
   INT32MAX = 2 ** 31 - 1
@@ -33,11 +39,20 @@ class Utility:
   """The maximum value of uint64."""
 
   @classmethod
+  def GetMemoryCapacity(cls):
+    """
+    Gets the memory capacity of the platform.
+
+    :return: The memory capacity of the platform in bytes, or -1 on failure.
+    """
+    pass  # native code
+
+  @classmethod
   def GetMemoryUsage(cls):
     """
     Gets the current memory usage of the process.
 
-    :return: The current memory usage of the process.
+    :return: The current memory usage of the process in bytes, or -1 on failure.
     """
     pass  # native code
 
@@ -47,7 +62,7 @@ class Utility:
     Primary hash function for the hash database.
 
     :param data: The data to calculate the hash value for.
-    :param num_buckets: The number of buckets of the hash table.  If it is omitted, 1<<64 is set.
+    :param num_buckets: The number of buckets of the hash table.  If it is omitted, UINT64MAX is set.
     :return: The hash value.
     """
     pass  # native code
@@ -58,7 +73,7 @@ class Utility:
     Secondary hash function for sharding.
 
     :param data: The data to calculate the hash value for.
-    :param num_shards: The number of shards.  If it is omitted, 1<<64 is set.
+    :param num_shards: The number of shards.  If it is omitted, UINT64MAX is set.
     :return: The hash value.
     """
     pass  # native code
@@ -104,7 +119,9 @@ class Status:
   """Error that a specific resource is duplicated."""
   BROKEN_DATA_ERROR = 11
   """Error that internal data are broken."""
-  APPLICATION_ERROR = 12
+  NETWORK_ERROR = 12
+  """Error caused by networking failure."""
+  APPLICATION_ERROR = 13
   """Generic error caused by the application logic."""
 
   def __init__(self, code=SUCCESS, message=""):
@@ -118,7 +135,7 @@ class Status:
 
   def __repr__(self):
     """
-    Returns A string representation of the object.
+    Returns a string representation of the object.
 
     :return: The string representation of the object.
     """
@@ -126,9 +143,19 @@ class Status:
 
   def __str__(self):
     """
-    Returns A string representation of the content.
+    Returns a string representation of the content.
 
     :return: The string representation of the content.
+    """
+    pass  # native code
+
+  def __eq__(self, rhs):
+    """
+    Returns true if the given object is equivalent to this object.
+    
+    :return: True if the given object is equivalent to this object.
+
+    This supports comparison between a status object and a status code number.
     """
     pass  # native code
 
@@ -138,6 +165,14 @@ class Status:
 
     :param code: The status code.  This can be omitted and then SUCCESS is set.
     :param message: An arbitrary status message.  This can be omitted and the an empty string is set.
+    """
+    pass  # native code
+
+  def Join(self, rht):
+    """
+    Assigns the internal state from another status object only if the current state is success.
+
+    :param rhs: The status object.
     """
     pass  # native code
 
@@ -170,6 +205,73 @@ class Status:
     Raises an exception if the status is not success.
 
     :raise StatusException: An exception containing the status object.
+    """
+    pass  # native code
+
+  @classmethod
+  def CodeName(cls, code):
+    """
+    Gets the string name of a status code.
+
+    :param: code The status code.
+    :return: The name of the status code.
+    """
+    pass  # native code
+
+
+class Future:
+  """
+  Future containing a status object and extra data.
+
+  Future objects are made by methods of AsyncDBM.  Every future object should be destroyed by the "Destruct" method or the "Get" method to free resources.  This class implements the awaitable protocol so an instance is usable with the "await" sentence.
+  """
+
+  def __init__(self):
+    """
+    The constructor cannot be called directly.  Use methods of AsyncDBM.
+    """
+    pass  # native code
+
+  def __repr__(self):
+    """
+    Returns A string representation of the object.
+
+    :return: The string representation of the object.
+    """
+    pass  # native code
+
+  def __str__(self):
+    """
+    Returns a string representation of the content.
+
+    :return: The string representation of the content.
+    """
+    pass  # native code
+
+  def __await__(self):
+    """
+    Waits for the operation to be done and returns an iterator.
+
+    :return: The iterator which stops immediately.
+    """
+    pass  # native code
+
+  def Wait(self, timeout=-1):
+    """
+    Waits for the operation to be done.
+
+    :param timeout: The waiting time in seconds.  If it is negative, no timeout is set.
+    :return: True if the operation has done.  False if timeout occurs.
+    """
+    pass  # native code
+
+  def Get(self):
+    """
+    Waits for the operation to be done and gets the result status.
+
+    :return: The result status and extra data if any.  The existence and the type of extra data depends on the operation which makes the future.  For DBM#Get, a tuple of the status and the retrieved value is returned.  For DBM#Set and DBM#Remove, the status object itself is returned.
+
+    The internal resource is released by this method.  "Wait" and "Get" cannot be called after calling this method.
     """
     pass  # native code
 
@@ -217,7 +319,11 @@ class DBM:
   Polymorphic database manager.
 
   All operations except for Open and Close are thread-safe; Multiple threads can access the same database concurrently.  You can specify a data structure when you call the Open method.  Every opened database must be closed explicitly by the Close method to avoid data corruption.
+  This class implements the iterable protocol so an instance is usable with "for-in" loop.
   """
+
+  ANY_DATA = b"\x00[ANY]\x00"
+  """The special bytes value for no-operation or any data."""
 
   def __init__(self):
     """
@@ -245,7 +351,7 @@ class DBM:
     """
     Gets the number of records, to enable the len operator.
 
-    :return: The number of records on success, or -1 on failure.
+    :return: The number of records on success, or 0 on failure.
     """
     pass  # native code
 
@@ -254,7 +360,7 @@ class DBM:
     Gets the value of a record, to enable the [] operator.
 
     :param key: The key of the record.
-    :return: The value of the matching record or None on failure.
+    :return: The value of the matching record.  An exception is raised for missing records.  If the given key is a string, the returned value is also a string.  Otherwise, the return value is bytes.
     :raise StatusException: An exception containing the status object.
     """
     pass  # native code
@@ -265,7 +371,15 @@ class DBM:
 
     :param key: The key of the record.
     :param value: The value of the record.
-    :return: The value of the matching record or None on failure.
+    :raise StatusException: An exception containing the status object.
+    """
+    pass  # native code
+
+  def __delitem__(self, key):
+    """
+    Removes a record of a key, to enable the del [] operator.
+
+    :param key: The key of the record.
     :raise StatusException: An exception containing the status object.
     """
     pass  # native code
@@ -284,7 +398,7 @@ class DBM:
 
     :param path: A path of the file.
     :param writable: If true, the file is writable.  If false, it is read-only.
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The result status.
 
     The extension of the path indicates the type of the database.
@@ -304,6 +418,7 @@ class DBM:
       - no_create (bool): True to omit file creation.
       - no_wait (bool): True to fail if the file is locked by another process.
       - no_lock (bool): True to omit file locking.
+      - sync_hard (bool): True to do physical synchronization when closing.
 
     The optional parameter "dbm" supercedes the decision of the database type by the extension.  The value is the type name: "HashDBM", "TreeDBM", "SkipDBM", "TinyDBM", "BabyDBM", "CacheDBM", "StdHashDBM", "StdTreeDBM".
 
@@ -319,8 +434,7 @@ class DBM:
       - restore_mode (string): How to restore the database file: "RESTORE_SYNC" to restore to the last synchronized state, "RESTORE_READ_ONLY" to make the database read-only, or "RESTORE_NOOP" to do nothing.  By default, as many records as possible are restored.
       - fbp_capacity (int): The capacity of the free block pool.
       - min_read_size (int): The minimum reading size to read a record.
-      - lock_mem_buckets (int): Positive to lock the memory for the hash buckets.
-      - cache_buckets (int): Positive to cache the hash buckets on memory.
+      - cache_buckets (bool): True to cache the hash buckets on memory.
 
     For TreeDBM, all optional parameters for HashDBM are available.  In addition, these optional parameters are supported.
       - max_page_size (int): The maximum size of a page.
@@ -346,6 +460,12 @@ class DBM:
     For CacheDBM, these optional parameters are supported.
       - cap_rec_num (int): The maximum number of records.
       - cap_mem_size (int): The total memory size to use.
+
+    All databases support taking update logs into files.  It is enabled by setting the prefix of update log files.
+      - ulog_prefix (str): The prefix of the update log files.
+      - ulog_max_file_size (num): The maximum file size of each update log file.  By default, it is 1GiB.
+      - ulog_server_id (num): The server ID attached to each log.  By default, it is 0.
+      - ulog_dbm_index (num): The DBM index attached to each log.  By default, it is 0.
 
     For the file "PositionalParallelFile" and "PositionalAtomicFile", these optional parameters are supported.
       - block_size (int): The block size to which all blocks should be aligned.
@@ -412,12 +532,13 @@ class DBM:
     """
     pass  # native code
 
-  def SetMulti(self, **records):
+  def SetMulti(self, overwrite=True, **records):
     """
     Sets multiple records of the keyword arguments.
 
-    :param records: Records to store.  Existing records with the same keys are overwritten.
-    :return: The result status.
+    :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+    :param records: Records to store, specified as keyword parameters.
+    :return: The result status.  If there are records avoiding overwriting, DUPLICATION_ERROR is returned.
     """
     pass  # native code
 
@@ -472,14 +593,37 @@ class DBM:
     """
     pass  # native code
 
+  def AppendMulti(self, delim="", **records):
+    """
+    Appends data to multiple records of the keyword arguments.
+
+    :param delim: The delimiter to put after the existing record.
+    :param records: Records to append, specified as keyword parameters.
+    :return: The result status.
+
+    If there's no existing record, the value is set without the delimiter.
+    """
+    pass  # native code
+
   def CompareExchange(self, key, expected, desired):
     """
     Compares the value of a record and exchanges if the condition meets.
 
     :param key: The key of the record.
-    :param expected: The expected value.  If it is None, no existing record is expected.
-    :param desired: The desired value.  If it is None, the record is to be removed.
+    :param expected: The expected value.  If it is None, no existing record is expected.  If it is ANY_DATA, an existing record with any value is expacted.
+    :param desired: The desired value.  If it is None, the record is to be removed.  If it is ANY_DATA, no update is done.
     :return: The result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
+    """
+    pass  # native code
+
+  def CompareExchangeAndGet(self, key, expected, desired):
+    """
+    Does compare-and-exchange and/or gets the old value of the record.
+
+    :param key: The key of the record.
+    :param expected: The expected value.  If it is None, no existing record is expected.  If it is ANY_DATA, an existing record with any value is expacted.
+    :param desired: The desired value.  If it is None, the record is to be removed.  If it is ANY_DATA, no update is done.
+    :return: A pair of the result status and the.old value of the record.  If the condition doesn't meet, the state is INFEASIBLE_ERROR.  If there's no existing record, the value is None.  If not None, the type of the returned old value is the same as the expected or desired value.
     """
     pass  # native code
 
@@ -501,9 +645,54 @@ class DBM:
     """
     Compares the values of records and exchanges if the condition meets.
 
-    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.
+    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.  If the value is ANY_DATA, an existing record with any value is expacted.
     :param desired: A sequence of pairs of the record keys and their desired values.  If the value is None, the record is to be removed.
     :return: The result status.  If the condition doesn't meet, INFEASIBLE_ERROR is returned.
+    """
+    pass  # native code
+
+  def Rekey(old_key, new_key, overwrite=True, copying=False):
+    """
+    Changes the key of a record.
+
+    :param old_key: The old key of the record.
+    :param new_key: The new key of the record.
+    :param overwrite: Whether to overwrite the existing record of the new key.
+    :param copying: Whether to retain the record of the old key.
+
+    :return: The result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is returned.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is returned.
+
+    This method is done atomically.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+    """
+    pass  # native code
+
+  def PopFirst(self, status=None):
+    """
+    Gets the first record and removes it.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the bytes key and the bytes value of the first record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def PopFirstStr(self, status=None):
+    """
+    Gets the first record as strings and removes it.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the string key and the string value of the first record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def PushLast(self, value, wtime=None):
+    """
+    Adds a record with a key of the current timestamp.
+
+    :param value: The value of the record.
+    :param wtime: The current wall time used to generate the key.  If it is None, the system clock is used.
+    :return: The result status.
+
+    The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
     """
     pass  # native code
 
@@ -531,6 +720,14 @@ class DBM:
     """
     pass  # native code
 
+  def GetTimestamp(self):
+    """
+    Gets the timestamp in seconds of the last modified time.
+
+    :return: The timestamp of the last modified time, or None on failure.
+    """
+    pass  # native code
+
   def Clear(self):
     """
     Removes all records.
@@ -543,10 +740,14 @@ class DBM:
     """
     Rebuilds the entire database.
 
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
     :return: The result status.
 
     The optional parameters are the same as the Open method.  Omitted tuning parameters are kept the same or implicitly optimized.
+
+    In addition, HashDBM, TreeDBM, and SkipDBM supports the following parameters.
+      - skip_broken_records (bool): If true, the operation continues even if there are broken records which can be skipped.
+      - sync_hard (bool): If true, physical synchronization with the hardware is done before finishing the rebuilt file.
     """
     pass  # native code
 
@@ -563,17 +764,19 @@ class DBM:
     Synchronizes the content of the database to the file system.
 
     :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
-    :param params: Optional parameters.
+    :param params: Optional keyword parameters.
+    :return: The result status.
 
     Only SkipDBM uses the optional parameters.  The "merge" parameter specifies paths of databases to merge, separated by colon.  The "reducer" parameter specifies the reducer to apply to records of the same key.  "ReduceToFirst", "ReduceToSecond", "ReduceToLast", etc are supported.
     """
     pass  # native code
 
-  def CopyFileData(self, dest_path):
+  def CopyFileData(self, dest_path, sync_hard=False):
     """
     Copies the content of the database file to another file.
 
     :param dest_path: A path to the destination file.
+    :param sync_hard: True to do physical synchronization with the hardware.
     :return: The result status.
     """
     pass  # native code
@@ -587,12 +790,34 @@ class DBM:
     """
     pass  # native code
 
-  def ExportKeysAsLines(self, dest_path):
+  def ExportToFlatRecords(self, dest_file):
+    """
+    Exports all records of a database to a flat record file.
+
+    :param dest_file: The file object to write records in.
+    :return: The result status.
+
+    A flat record file contains a sequence of binary records without any high level structure so it is useful as a intermediate file for data migration.
+    """
+    pass  # native code
+    
+  def ImportFromFlatRecords(self, src_file):
+    """
+    Imports records to a database from a flat record file.
+
+    :param src_file: The file object to read records from.
+    :return: The result status.
+    """
+    pass  # native code
+
+  def ExportKeysAsLines(self, dest_file):
     """
     Exports the keys of all records as lines to a text file.
 
-    :param dest_path: A path of the output text file.
+    :param dest_file: The file object to write keys in.
     :return: The result status.
+
+    As the exported text file is smaller than the database file, scanning the text file by the search method is often faster than scanning the whole database.
     """
     pass  # native code
 
@@ -612,6 +837,14 @@ class DBM:
     """
     pass  # native code
 
+  def IsWritable(self):
+    """
+    Checks whether the database is writable.
+
+    :return: True if the database is writable, or false if not.
+    """
+    pass  # native code
+
   def IsHealthy(self):
     """
     Checks whether the database condition is healthy.
@@ -628,15 +861,14 @@ class DBM:
     """
     pass  # native code
 
-  def Search(self, mode, pattern, capacity=0, utf=False):
+  def Search(self, mode, pattern, capacity=0):
     """
     Searches the database and get keys which match a pattern.
 
-    :param mode: The search mode.  "contain" extracts keys containing the pattern.  "begin" extracts keys beginning with the pattern.  "end" extracts keys ending with the pattern.  "regex" extracts keys partially matches the pattern of a regular expression.  "edit" extracts keys whose edit distance to the pattern is the least.
+    :param mode: The search mode.  "contain" extracts keys containing the pattern.  "begin" extracts keys beginning with the pattern.  "end" extracts keys ending with the pattern.  "regex" extracts keys partially matches the pattern of a regular expression.  "edit" extracts keys whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts keys whose edit distance to the binary pattern is the least.
     :param pattern: The pattern for matching.
     :param capacity: The maximum records to obtain.  0 means unlimited.
-    :param utf: If true, text is treated as UTF-8, which affects "regex" and "edit".
-    :return: A list of keys matching the condition.
+    :return: A list of string keys matching the condition.
     """
     pass  # native code
 
@@ -647,6 +879,18 @@ class DBM:
     :return: The iterator for each record.
     """
     pass  # native code
+
+  @classmethod
+  def RestoreDatabase(cls, old_file_path, new_file_path, class_name="", end_offset=-1):
+    """
+    Restores a broken database as a new healthy database.
+
+    :param old_file_path: The path of the broken database.
+    :param new_file_path: The path of the new database to be created.
+    :param class_name: The name of the database class.  If it is None or empty, the class is guessed from the file extension.
+    :param end_offset: The exclusive end offset of records to read.  Negative means unlimited.  0 means the size when the database is synched or closed properly.  Using a positive value is not meaningful if the number of shards is more than one.
+    :return: The result status.
+    """
 
 
 class Iterator:
@@ -832,17 +1076,315 @@ class Iterator:
     """
     pass  # native code
 
+  def Step(self, status=None):
+    """
+    Gets the current record and moves the iterator to the next record.
 
-class TextFile:
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the bytes key and the bytes value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def StepStr(self, status=None):
+    """
+    Gets the current record and moves the iterator to the next record, as strings.
+
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: A tuple of the string key and the string value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
+
+class AsyncDBM:
   """
-  Text file of line data.
+  Asynchronous database manager adapter.
 
-  DBM#ExportKeysAsLines outputs keys of the database into a text file.  Scanning the text file is more efficient than scanning the whole database.
+  This class is a wrapper of DBM for asynchronous operations.  A task queue with a thread pool is used inside.  Every method except for the constructor and the destructor is run by a thread in the thread pool and the result is set in the future oject of the return value.  The caller can ignore the future object if it is not necessary.  The Destruct method waits for all tasks to be done.  Therefore, the destructor should be called before the database is closed.
+  """
+  
+  def __init__(self, dbm, num_worker_threads):
+    """
+    Sets up the task queue.
+
+    :param dbm: A database object which has been opened.
+    :param num_worker_threads: The number of threads in the internal thread pool.
+    """
+    pass  # native code
+
+  def __repr__(self):
+    """
+    Returns A string representation of the object.
+
+    :return: The string representation of the object.
+    """
+    pass  # native code
+
+  def __str__(self):
+    """
+    Returns a string representation of the content.
+
+    :return: The string representation of the content.
+    """
+    pass  # native code
+
+  def Destruct():
+    """
+    Destructs the asynchronous database adapter.
+
+    This method waits for all tasks to be done.
+    """
+
+  def Get(self, key):
+    """
+    Gets the value of a record of a key.
+
+    :param key: The key of the record.
+    :return: The future for the result status and the bytes value of the matching record.
+    """
+    pass  # native code
+
+  def GetStr(self, key):
+    """
+    Gets the value of a record of a key, as a string.
+
+    :param key: The key of the record.
+    :return: The future for the result status and the string value of the matching record.
+    """
+    pass  # native code
+
+  def GetMulti(self, *keys):
+    """
+    Gets the values of multiple records of keys.
+
+    :param keys: The keys of records to retrieve.
+    :return: The future for the result status and a map of retrieved records.  Keys which don't match existing records are ignored.
+    """
+    pass  # native code
+
+  def GetMultiStr(self, *keys):
+    """
+    Gets the values of multiple records of keys, as strings.
+
+    :param keys: The keys of records to retrieve.
+    :return: The future for the result status and a map of retrieved records.  Keys which don't match existing records are ignored.
+    """
+    pass  # native code
+
+  def Set(self, key, value, overwrite=True):
+    """
+    Sets a record of a key and a value.
+
+    :param key: The key of the record.
+    :param value: The value of the record.
+    :param overwrite: Whether to overwrite the existing value.  It can be omitted and then false is set.
+    :return: The future for the result status.  If overwriting is abandoned, DUPLICATION_ERROR is set.
+    """
+    pass  # native code
+
+  def SetMulti(self, overwrite=True, **records):
+    """
+    Sets multiple records of the keyword arguments.
+
+    :param overwrite: Whether to overwrite the existing value if there's a record with the same key.  If true, the existing value is overwritten by the new value.  If false, the operation is given up and an error status is returned.
+    :param records: Records to store, specified as keyword parameters.
+    :return: The future for the result status.  If overwriting is abandoned, DUPLICATION_ERROR is set.
+    """
+    pass  # native code
+
+  def Append(self, key, value, delim=""):
+    """
+    Appends data at the end of a record of a key.
+
+    :param key: The key of the record.
+    :param value: The value to append.
+    :param delim: The delimiter to put after the existing record.
+    :return: The future for the result status.
+
+    If there's no existing record, the value is set without the delimiter.
+    """
+    pass  # native code
+
+  def AppendMulti(self, delim="", **records):
+    """
+    Appends data to multiple records of the keyword arguments.
+
+    :param delim: The delimiter to put after the existing record.
+    :param records: Records to append, specified as keyword parameters.
+    :return: The future for the result status.
+
+    If there's no existing record, the value is set without the delimiter.
+    """
+    pass  # native code
+
+  def CompareExchange(self, key, expected, desired):
+    """
+    Compares the value of a record and exchanges if the condition meets.
+
+    :param key: The key of the record.
+    :param expected: The expected value.  If it is None, no existing record is expected.  If it is DBM.ANY_DATA, an existing record with any value is expacted.
+    :param desired: The desired value.  If it is None, the record is to be removed.  If it is None, the record is to be removed.  If it is DBM.ANY_DATA, no update is done.
+    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is set.
+    """
+    pass  # native code
+
+  def Increment(self, key, inc=1, init=0):
+    """
+    Increments the numeric value of a record.
+
+    :param key: The key of the record.
+    :param inc: The incremental value.  If it is Utility.INT64MIN, the current value is not changed and a new record is not created.
+    :param init: The initial value.
+    :return: The future for the result status and the current value.
+
+    The record value is stored as an 8-byte big-endian integer.  Negative is also supported.
+    """
+    pass  # native code
+
+  def CompareExchangeMulti(self, expected, desired):
+    """
+    Compares the values of records and exchanges if the condition meets.
+
+    :param expected: A sequence of pairs of the record keys and their expected values.  If the value is None, no existing record is expected.  If the value is DBM.ANY_DATA, an existing record with any value is expacted.
+    :param desired: A sequence of pairs of the record keys and their desired values.  If the value is None, the record is to be removed.
+    :return: The future for the result status.  If the condition doesn't meet, INFEASIBLE_ERROR is set.
+    """
+    pass  # native code
+
+  def Rekey(old_key, new_key, overwrite=True, copying=False):
+    """
+    Changes the key of a record.
+
+    :param old_key: The old key of the record.
+    :param new_key: The new key of the record.
+    :param overwrite: Whether to overwrite the existing record of the new key.
+    :param copying: Whether to retain the record of the old key.
+
+    :return: The future for the result status.  If there's no matching record to the old key, NOT_FOUND_ERROR is set.  If the overwrite flag is false and there is an existing record of the new key, DUPLICATION ERROR is set.
+
+    This method is done atomically.  The other threads observe that the record has either the old key or the new key.  No intermediate states are observed.
+    """
+    pass  # native code
+
+  def PopFirst(self):
+    """
+    Gets the first record and removes it.
+
+    :return: The future for a tuple of the result status, the bytes key, and the bytes value of the first record.
+    """
+    pass  # native code
+
+  def PopFirstStr(self):
+    """
+    Gets the first record as strings and removes it.
+
+    :return: The future for a tuple of the result status, the string key, and the string value of the first record.
+    """
+    pass  # native code
+
+  def PushLast(self, value, wtime=None):
+    """
+    Adds a record with a key of the current timestamp.
+
+    :param value: The value of the record.
+    :param wtime: The current wall time used to generate the key.  If it is None, the system clock is used.
+    :return: The future for the result status.
+
+    The key is generated as an 8-bite big-endian binary string of the timestamp.  If there is an existing record matching the generated key, the key is regenerated and the attempt is repeated until it succeeds.
+    """
+    pass  # native code
+
+  def Clear(self):
+    """
+    Removes all records.
+
+    :return: The future for the result status.
+    """
+    pass  # native code
+
+  def Rebuild(self, **params):
+    """
+    Rebuilds the entire database.
+
+    :param params: Optional keyword parameters.
+    :return: The future for the result status.
+
+    The parameters work in the same way as with DBM::Rebuild.
+    """
+    pass  # native code
+
+  def Synchronize(self, hard, **params):
+    """
+    Synchronizes the content of the database to the file system.
+
+    :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+    :param params: Optional keyword parameters.
+    :return: The future for the result status.
+
+    The parameters work in the same way as with DBM::Synchronize.
+    """
+    pass  # native code
+
+  def CopyFileData(self, dest_path, sync_hard=False):
+    """
+    Copies the content of the database file to another file.
+
+    :param dest_path: A path to the destination file.
+    :param sync_hard: True to do physical synchronization with the hardware.
+    :return: The future for the result status.
+    """
+    pass  # native code
+
+  def Export(self, dest_dbm):
+    """
+    Exports all records to another database.
+
+    :param dest_dbm: The destination database.  The lefetime of the database object must last until the task finishes.
+    :return: The future for the result status.
+    """
+    pass  # native code
+
+  def ExportToFlatRecords(self, dest_file):
+    """
+    Exports all records of a database to a flat record file.
+
+    :param dest_file: The file object to write records in.  The lefetime of the file object must last until the task finishes.
+    :return: The future for the result status.
+
+    A flat record file contains a sequence of binary records without any high level structure so it is useful as a intermediate file for data migration.
+    """
+    pass  # native code
+    
+  def ImportFromFlatRecords(self, src_file):
+    """
+    Imports records to a database from a flat record file.
+
+    :param src_file: The file object to read records from.  The lefetime of the file object must last until the task finishes.
+    :return: The future for the result status.
+    """
+    pass  # native code
+
+  def Search(self, mode, pattern, capacity=0):
+    """
+    Searches the database and get keys which match a pattern.
+
+    :param mode: The search mode.  "contain" extracts keys containing the pattern.  "begin" extracts keys beginning with the pattern.  "end" extracts keys ending with the pattern.  "regex" extracts keys partially matches the pattern of a regular expression.  "edit" extracts keys whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts keys whose edit distance to the binary pattern is the least.
+    :param pattern: The pattern for matching.
+    :param capacity: The maximum records to obtain.  0 means unlimited.
+    :return: The future for the result status and a list of keys matching the condition.
+    """
+    pass  # native code
+
+
+class File:
+  """
+  Generic file implementation.
+
+  All operations except for "open" and "close" are thread-safe; Multiple threads can access the same file concurrently.  You can specify a concrete class when you call the "open" method.  Every opened file must be closed explicitly by the "close" method to avoid data corruption.
   """
 
   def __init__(self):
     """
-    Initializes the text file object.
+    Initializes the file object.
     """
     pass  # native code
 
@@ -862,31 +1404,129 @@ class TextFile:
     """
     pass  # native code
 
-  def Open(self, path):
+  def Open(self, path, writable, **params):
     """
-    Opens a text file.
+    Opens a file.
 
     :param path: A path of the file.
+    :param writable: If true, the file is writable.  If false, it is read-only.
+    :param params: Optional keyword parameters.
     :return: The result status.
+
+    The optional parameters can include an option for the concurrency tuning.  By default, database operatins are done under the GIL (Global Interpreter Lock), which means that database operations are not done concurrently even if you use multiple threads.  If the "concurrent" parameter is true, database operations are done outside the GIL, which means that database operations can be done concurrently if you use multiple threads.  However, the downside is that swapping thread data is costly so the actual throughput is often worse in the concurrent mode than in the normal mode.  Therefore, the concurrent mode should be used only if the database is huge and it can cause blocking of threads in multi-thread usage.
+
+    The optional parameters can include options for the file opening operation.
+      - truncate (bool): True to truncate the file.
+      - no_create (bool): True to omit file creation.
+      - no_wait (bool): True to fail if the file is locked by another process.
+      - no_lock (bool): True to omit file locking.
+      - sync_hard (bool): True to do physical synchronization when closing.
+
+    The optional parameter "file" specifies the internal file implementation class.  The default file class is "MemoryMapAtomicFile".  The other supported classes are "StdFile", "MemoryMapAtomicFile", "PositionalParallelFile", and "PositionalAtomicFile".
+
+    For the file "PositionalParallelFile" and "PositionalAtomicFile", these optional parameters are supported.
+      - block_size (int): The block size to which all blocks should be aligned.
+      - access_options (str): Values separated by colon.  "direct" for direct I/O.  "sync" for synchrnizing I/O, "padding" for file size alignment by padding, "pagecache" for the mini page cache in the process.
     """
     pass  # native code
 
   def Close(self):
     """
-    Closes the text file.
+    Closes the file.
 
     :return: The result status.
     """
     pass  # native code
 
-  def Search(self, mode, pattern, capacity=0, utf=False):
+  def Read(self, off, size, status=None):
     """
-    Searches the text file and get lines which match a pattern.
+    Reads data.
+    
+    :param off: The offset of a source region.
+    :param size: The size to be read.
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: The bytes value of the read data or None on failure.
+    """
+    pass  # native code
 
-    :param mode: The search mode.  "contain" extracts lines containing the pattern.  "begin" extracts lines beginning with the pattern.  "end" extracts lines ending with the pattern.  "regex" extracts lines partially matches the pattern of a regular expression.  "edit" extracts lines whose edit distance to the pattern is the least.
+  def ReadStr(self, off, size, status=None):
+    """
+    Reads data as a string.
+    
+    :param off: The offset of a source region.
+    :param size: The size to be read.
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: The string value of the read data or None on failure.
+    """
+    pass  # native code
+
+  def Write(self, off, data):
+    """
+    Writes data.
+
+    :param off: The offset of the destination region.
+    :param data: The data to write.
+    :return: The result status.
+    """
+    pass  # native code
+
+  def Append(self, data, status=None):
+    """
+    Appends data at the end of the file.
+
+    :param data: The data to write.
+    :param status: A status object to which the result status is assigned.  It can be omitted.
+    :return: The offset at which the data has been put, or None on failure.
+    """
+    pass  # native code
+
+  def Truncate(self, size):
+    """
+    Truncates the file.
+
+    :param size: The new size of the file.
+    :return: The result status.
+
+    If the file is shrunk, data after the new file end is discarded.  If the file is expanded, null codes are filled after the old file end.
+    """
+    pass  # native code
+
+  def Synchronize(self, hard, off=0, size=0):
+    """
+    Synchronizes the content of the file to the file system.
+
+    :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+    :param off: The offset of the region to be synchronized.
+    :param size: The size of the region to be synchronized.  If it is zero, the length to the end of file is specified.
+    :return: The result status.
+
+    The pysical file size can be larger than the logical size in order to improve performance by reducing frequency of allocation.  Thus, you should call this function before accessing the file with external tools.
+    """
+    pass  # native code
+
+  def GetSize(self):
+    """
+    Gets the size of the file.
+
+    :return: The size of the file or None on failure.
+    """
+    pass  # native code
+
+  def GetPath(self):
+    """
+    Gets the path of the file.
+
+    :return: The path of the file or None on failure.
+    """
+    pass  # native code
+
+  def Search(self, mode, pattern, capacity=0):
+    """
+    Searches the file and get lines which match a pattern.
+
+    :param mode: The search mode.  "contain" extracts lines containing the pattern.  "begin" extracts lines beginning with the pattern.  "end" extracts lines ending with the pattern.  "regex" extracts lines partially matches the pattern of a regular expression.  "edit" extracts lines whose edit distance to the UTF-8 pattern is the least.  "editbin" extracts lines whose edit distance to the binary pattern is the least.
     :param pattern: The pattern for matching.
     :param capacity: The maximum records to obtain.  0 means unlimited.
-    :param utf: If true, text is treated as UTF-8, which affects "regex" and "edit".
     :return: A list of lines matching the condition.
     """
     pass  # native code
