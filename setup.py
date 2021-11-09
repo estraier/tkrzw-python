@@ -1,6 +1,6 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
-# --------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
 # Building configurations
 #
 # Copyright 2020 Google LLC
@@ -11,7 +11,7 @@
 # License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 # either express or implied.  See the License for the specific language governing permissions
 # and limitations under the License.
-# --------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
 
 import os
 import platform
@@ -19,7 +19,7 @@ import subprocess
 
 from setuptools import Extension, setup
 
-package_name = 'tkrzw'
+package_name = 'Tkrzw'
 package_version = '0.1'
 package_description = 'a set of implementations of DBM'
 package_author = 'Mikio Hirabayashi'
@@ -51,12 +51,13 @@ include_dirs = flags.get('-I', []) or ['/usr/local/include']
 
 # Parse library dirs and libraries
 flags = parse_build_flags(['tkrzw_build_util', 'config', '-l'])
-library_dirs = flags.get('-L', []) or ['/usr/local/lib']
+library_dirs = flags.get('-L', ['/usr/local/lib'])
 libraries = flags.get('-l', [])
 if not libraries:
-    libraries = ['tkrzw', 'stdc++', 'pthread', 'm', 'c']
-    if platform.system() != "Darwin":
-        libraries.merge(['rt', 'atomic'])
+    if platform.system() == "Darwin":
+        libraries = ['tkrzw', 'stdc++', 'pthread', 'm', 'c']
+    else:
+        libraries = ['tkrzw', 'stdc++', 'rt', 'atomic', 'pthread', 'm', 'c']
 
 setup(
     name=package_name,
