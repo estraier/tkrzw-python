@@ -19,7 +19,7 @@ import subprocess
 
 from setuptools import Extension, setup
 
-package_name = 'Tkrzw'
+package_name = 'tkrzw'
 package_version = '0.1'
 package_description = 'a set of implementations of DBM'
 package_author = 'Mikio Hirabayashi'
