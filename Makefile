@@ -1,7 +1,7 @@
 # Makefile for Tkrzw for Python
 
 PACKAGE = tkrzw-python
-VERSION = 0.1.27
+VERSION = 0.1.28
 PACKAGEDIR = $(PACKAGE)-$(VERSION)
 PACKAGETGZ = $(PACKAGE)-$(VERSION).tar.gz
 

@@ -476,6 +476,9 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(record[1], b"foo")
       self.assertEqual(Status.SUCCESS, export_dbm.Close())
       self.assertEqual(Status.SUCCESS, dbm.Close())
+      if path:
+        self.assertEqual(Status.SUCCESS, dbm.Open(path, False, open_params))
+        self.assertEqual(Status.SUCCESS, dbm.Close())
 
   # Iterator tests.
   def testIterator(self):
