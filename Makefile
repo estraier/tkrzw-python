@@ -40,6 +40,7 @@ dist :
 	sync ; sync
 
 distclean : clean apidocclean
+	rm -rf dist *.egg-info
 
 check :
 	$(RUNENV) $(PYTHON) test.py 
