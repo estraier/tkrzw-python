@@ -14,10 +14,12 @@
 #--------------------------------------------------------------------------------------------------
 
 import os
-from distutils.core import *
-from subprocess import *
+import platform
+import subprocess
 
-package_name = 'Tkrzw'
+from setuptools import Extension, setup
+
+package_name = 'tkrzw'
 package_version = '0.1'
 package_description = 'a set of implementations of DBM'
 package_author = 'Mikio Hirabayashi'
@@ -25,64 +27,54 @@ package_author_email = 'hirarin@gmail.com'
 package_url = 'http://dbmx.net/tkrzw/'
 module_name = 'tkrzw'
 
-ldpath = os.environ.get('LD_LIBRARY_PATH')
-ldpaths = []
-if ldpath:
-    ldpaths.append(ldpath)
-ldpaths.append('/usr/local/lib')
-os.environ['LD_LIBRARY_PATH'] = ':'.join(ldpaths)
-
-def getcmdout(cmdargs):
-    try:
-        pipe = Popen(cmdargs, stdout=PIPE)
-        output = pipe.communicate()[0].decode('utf-8')
-    except:
-        output = ""
-    return output.strip()
-
-include_dirs = []
-myincopts = getcmdout(['tkrzw_build_util', 'config', '-i']).split()
-for incopt in myincopts:
-    if incopt.startswith('-I'):
-        incdir = incopt[2:]
-        include_dirs.append(incdir)
-if len(include_dirs) < 1:
-    include_dirs = ['/usr/local/include']
-
 extra_compile_args = ["-std=c++17", "-Wall"]
 sources = ['tkrzw.cc']
 
-library_dirs = []
-libraries = []
-mylibopts = getcmdout(['tkrzw_build_util', 'config', '-l']).split()
-for libopt in mylibopts:
-    if libopt.startswith('-L'):
-        libdir = libopt[2:]
-        library_dirs.append(libdir)
-    elif libopt.startswith('-l'):
-        libname = libopt[2:]
-        libraries.append(libname)
-if len(library_dirs) < 1:
-    library_dirs = ['/usr/local/lib']
-if len(libraries) < 1:
-    if (os.uname()[0] == "Darwin"):
+ld_paths = [
+    '/usr/local/lib'
+]
+os.environ['LD_LIBRARY_PATH'] = os.environ.get('LD_LIBRARY_PATH', '') + ':'.join(ld_paths)
+
+
+def parse_build_flags(cmd_args):
+    result = {}
+    output = subprocess.check_output(cmd_args).strip().decode()
+    for item in output.split():
+        flag = item[0:2]
+        result.setdefault(flag, []).append(item[2:])
+    return result
+
+
+# Parse include dirs
+flags = parse_build_flags(['tkrzw_build_util', 'config', '-i'])
+include_dirs = flags.get('-I', []) or ['/usr/local/include']
+
+# Parse library dirs and libraries
+flags = parse_build_flags(['tkrzw_build_util', 'config', '-l'])
+library_dirs = flags.get('-L', ['/usr/local/lib'])
+libraries = flags.get('-l', [])
+if not libraries:
+    if platform.system() == "Darwin":
         libraries = ['tkrzw', 'stdc++', 'pthread', 'm', 'c']
     else:
         libraries = ['tkrzw', 'stdc++', 'rt', 'atomic', 'pthread', 'm', 'c']
 
-module = Extension(module_name,
-                   include_dirs = include_dirs,
-                   extra_compile_args = extra_compile_args,
-                   sources = sources,
-                   library_dirs = library_dirs,
-                   libraries = libraries)
-
-setup(name = package_name,
-      version = package_version,
-      description = package_description,
-      author = package_author,
-      author_email = package_author_email,
-      url = package_url,
-      ext_modules = [module])
-
+setup(
+    name=package_name,
+    version=package_version,
+    description=package_description,
+    author=package_author,
+    author_email=package_author_email,
+    url=package_url,
+    ext_modules=[
+        Extension(
+            module_name,
+            include_dirs=include_dirs,
+            extra_compile_args=extra_compile_args,
+            sources=sources,
+            library_dirs=library_dirs,
+            libraries=libraries
+        ),
+    ]
+)
 # END OF FILE
