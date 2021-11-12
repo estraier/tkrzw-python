@@ -1169,6 +1169,8 @@ static PyObject* dbm_Close(PyDBM* self) {
     NativeLock lock(self->concurrent);
     status = self->dbm->Close();
   }
+  delete self->dbm;
+  self->dbm = nullptr;
   return CreatePyTkStatusMove(std::move(status));
 }
 
