@@ -477,7 +477,7 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(Status.SUCCESS, export_dbm.Close())
       self.assertEqual(Status.SUCCESS, dbm.Close())
       if path:
-        self.assertEqual(Status.SUCCESS, dbm.Open(path, False, open_params))
+        self.assertEqual(Status.SUCCESS, dbm.Open(path, False, **open_params))
         self.assertEqual(Status.SUCCESS, dbm.Close())
 
   # Iterator tests.
