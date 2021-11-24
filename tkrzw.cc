@@ -2356,8 +2356,8 @@ static PyObject* dbm_getitem(PyDBM* self, PyObject* pykey) {
   return CreatePyBytes(value);
 }
 
-// Implementation of DBM#__include__.
-static int dbm_include(PyDBM* self, PyObject* pykey) {
+// Implementation of DBM#__contains__.
+static int dbm_contains(PyDBM* self, PyObject* pykey) {
   if (self->dbm == nullptr) {
     ThrowInvalidArguments("not opened database");
     return -1;
@@ -2541,7 +2541,7 @@ static bool DefineDBM() {
   type_dbm.tp_as_mapping = &map_methods;
   static PySequenceMethods seq_methods;
   std::memset(&seq_methods, 0, sizeof(seq_methods));
-  seq_methods.sq_contains = (objobjproc)dbm_include;
+  seq_methods.sq_contains = (objobjproc)dbm_contains;
   type_dbm.tp_as_sequence = &seq_methods;
   type_dbm.tp_iter = (getiterfunc)dbm_iter;
   if (PyType_Ready(&type_dbm) != 0) return false;
