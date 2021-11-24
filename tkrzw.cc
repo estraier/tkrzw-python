@@ -2356,6 +2356,27 @@ static PyObject* dbm_getitem(PyDBM* self, PyObject* pykey) {
   return CreatePyBytes(value);
 }
 
+// Implementation of DBM#__include__.
+static int dbm_include(PyDBM* self, PyObject* pykey) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return -1;
+  }
+  SoftString key(pykey);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->dbm->Get(key.Get());
+  }
+  if (status == tkrzw::Status::SUCCESS) {
+    return 1;
+  }
+  if (status == tkrzw::Status::NOT_FOUND_ERROR) {
+    return 0;
+  }
+  return -1;
+}
+
 // Implementation of DBM#__setitem__ and DBM#__delitem__.
 static int dbm_setitem(PyDBM* self, PyObject* pykey, PyObject* pyvalue) {
   if (self->dbm == nullptr) {
@@ -2518,6 +2539,10 @@ static bool DefineDBM() {
   map_methods.mp_subscript = (binaryfunc)dbm_getitem;
   map_methods.mp_ass_subscript = (objobjargproc)dbm_setitem;
   type_dbm.tp_as_mapping = &map_methods;
+  static PySequenceMethods seq_methods;
+  std::memset(&seq_methods, 0, sizeof(seq_methods));
+  seq_methods.sq_contains = (objobjproc)dbm_include;
+  type_dbm.tp_as_sequence = &seq_methods;
   type_dbm.tp_iter = (getiterfunc)dbm_iter;
   if (PyType_Ready(&type_dbm) != 0) return false;
   cls_dbm = (PyObject*)&type_dbm;

@@ -4,6 +4,7 @@
 
 	- Build setting is modified for separate atomic libraries.
 	- One database object can be opened/closed multiple times.
+	- Add __inlucd method for "in" operator.
 
 2021-11-02  Mikio Hirabayashi  <hirarin@gmail.com>
 
