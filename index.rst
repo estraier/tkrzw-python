@@ -80,6 +80,10 @@ The following code is a typical example to use a database.  A DBM object can be 
  except tkrzw.StatusException as e:
      print(repr(e))
 
+ # Checks and deletes a record.
+ if "first" in dbm:
+     del dbm["first"]
+
  # Traverses records.
  # Retrieved keys and values are always bytes so we decode them.
  for key, value in dbm:
