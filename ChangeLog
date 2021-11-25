@@ -1,3 +1,11 @@
+2021-11-13  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.28
+
+	- Build setting is modified for separate atomic libraries.
+	- One database object can be opened/closed multiple times.
+	- Add __contains__ method for "in" operator.
+
 2021-11-02  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.27

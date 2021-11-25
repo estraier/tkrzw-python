@@ -365,6 +365,15 @@ class DBM:
     """
     pass  # native code
 
+  def __contains__(self, key):
+    """
+    Checks if a record exists or not, to enable the in operator.
+
+    :param key: The key of the record.
+    :return: True if the record exists, or False if not.  No exception is raised for missing records.
+    """
+    pass  # native code
+
   def __setitem__(self, key, value):
     """
     Sets a record of a key and a value, to enable the []= operator.

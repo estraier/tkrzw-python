@@ -395,11 +395,13 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual("bar,bazqux", export_dbm.GetStr("foo"))
       export_dbm["abc"] = "defg"
       self.assertEqual("defg", export_dbm["abc"])
+      self.assertTrue("abc" in export_dbm)
       del export_dbm["abc"]
       try:
         export_dbm["abc"]
       except StatusException as e:
         self.assertEqual(Status.NOT_FOUND_ERROR, e.GetStatus())
+      self.assertFalse("abc" in export_dbm)
       self.assertEqual(Status.SUCCESS, export_dbm.SetMulti(True, one="first", two="second"))
       self.assertEqual(Status.SUCCESS, export_dbm.AppendMulti(":", one="1", two="2"))
       ret_records = export_dbm.GetMulti("one", "two", "three")
@@ -476,6 +478,9 @@ class TestTkrzw(unittest.TestCase):
       self.assertEqual(record[1], b"foo")
       self.assertEqual(Status.SUCCESS, export_dbm.Close())
       self.assertEqual(Status.SUCCESS, dbm.Close())
+      if path:
+        self.assertEqual(Status.SUCCESS, dbm.Open(path, False, **open_params))
+        self.assertEqual(Status.SUCCESS, dbm.Close())
 
   # Iterator tests.
   def testIterator(self):
