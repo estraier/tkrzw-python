@@ -45,7 +45,7 @@ Installation
 
 Install the latest version of Tkrzw beforehand and get the package of the Python binding of Tkrzw.  Python 3.6 or later is required to use this package.
 
-Enter the directory of the extracted package then perform installation.  If your system has the another command except for the "python3" command, edit the Makefile beforehand.::
+Enter the directory of the extracted package then perform installation.  If your system uses another command than the "python3" command, edit the Makefile beforehand.::
 
  make
  make check

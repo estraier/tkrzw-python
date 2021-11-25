@@ -22,7 +22,7 @@ clean :
 
 install :
 	$(PYTHON) setup.py install
-	chown -R `stat -c "%U:%G" Makefile` dist *.egg-info
+	-chown -R `stat -c "%U:%G" Makefile` dist *.egg-info
 	@printf '\n'
 	@printf '#================================================================\n'
 	@printf '# Thanks for using Tkrzw for Python.\n'
