@@ -449,6 +449,7 @@ class DBM:
       - max_page_size (int): The maximum size of a page.
       - max_branches (int): The maximum number of branches each inner node can have.
       - max_cached_pages (int): The maximum number of cached pages.
+      - page_update_mode (string): What to do when each page is updated: "PAGE_UPDATE_NONE" is to do no operation or "PAGE_UPDATE_WRITE" is to write immediately.
       - key_comparator (string): The comparator of record keys: "LexicalKeyComparator" for the lexical order, "LexicalCaseKeyComparator" for the lexical order ignoring case, "DecimalKeyComparator" for the order of the decimal integer numeric expressions, "HexadecimalKeyComparator" for the order of the hexadecimal integer numeric expressions, "RealNumberKeyComparator" for the order of the decimal real number expressions.
 
     For SkipDBM, these optional parameters are supported.
