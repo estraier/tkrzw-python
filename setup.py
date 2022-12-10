@@ -16,6 +16,7 @@
 import os
 import platform
 import subprocess
+import sys
 
 from setuptools import Extension, setup
 
@@ -83,8 +84,6 @@ def parse_build_flags(cmd_args):
             flag = item[0:2]
             result.setdefault(flag, []).append(item[2:])
     except FileNotFoundError:
-        import sys
-
         sys.stderr.write(f"Warning: {cmd_args[0]} not found")
     return result
 
