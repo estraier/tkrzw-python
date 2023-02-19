@@ -521,7 +521,6 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(10, counters["full"])
     def Processor4(k, v):
       if not k: return
-      print(v, int(int(v) ** 0.5))
       return int(int(v) ** 0.5)
     self.assertEqual(Status.SUCCESS, dbm.ProcessEach(Processor4, True))
     def Processor5(k, v):
@@ -530,6 +529,26 @@ class TestTkrzw(unittest.TestCase):
       return False
     self.assertEqual(Status.SUCCESS, dbm.ProcessEach(Processor5, True))
     self.assertEqual(0, dbm.Count())
+    ops = [
+      ("one", lambda key, value: "hop"),
+      ("two", lambda key, value: "step"),
+      ("three", lambda key, value: "jump"),
+    ]
+    self.assertEqual(Status.SUCCESS, dbm.ProcessMulti(ops, True))
+    ops = [
+      ("one", lambda key, value: False),
+      ("two", lambda key, value: False),
+      ("three", lambda key, value: value.decode() * 2 if value else "x"),
+      ("four", lambda key, value: value.decode() * 2 if value else "x"),
+      ("three", lambda key, value: value.decode() * 2 if value else "x"),
+      ("four", lambda key, value: value.decode() * 2 if value else "x"),
+    ]
+    self.assertEqual(Status.SUCCESS, dbm.ProcessMulti(ops, True))
+    self.assertEqual(2, dbm.Count())
+    self.assertEqual(None, dbm.GetStr("one"))
+    self.assertEqual(None, dbm.GetStr("two"))
+    self.assertEqual("jumpjumpjumpjump", dbm.GetStr("three"))
+    self.assertEqual("xx", dbm.GetStr("four"))
     self.assertEqual(Status.SUCCESS, dbm.Close())
 
   # Thread tests.

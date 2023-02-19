@@ -340,6 +340,85 @@ static std::map<std::string, std::string> MapKeywords(PyObject* pykwds) {
   return map;
 }
 
+
+// Extracts a list of pairs of string views and functions from a sequence object.
+std::vector<std::pair<std::string, std::shared_ptr<tkrzw::DBM::RecordProcessor>>> ExtractKFPairs(
+    PyObject* pyseq) {
+  std::vector<std::pair<std::string, std::shared_ptr<tkrzw::DBM::RecordProcessor>>> result;
+  const size_t size = PySequence_Size(pyseq);
+  result.reserve(size);
+  for (size_t i = 0; i < size; i++) {
+    PyObject* pypair = PySequence_GetItem(pyseq, i);
+    if (PySequence_Check(pypair) && PySequence_Size(pypair) >= 2) {
+      PyObject* pykey = PySequence_GetItem(pypair, 0);
+      PyObject* pyfunc = PySequence_GetItem(pypair, 1);
+      if (PyCallable_Check(pyfunc)) {
+        SoftString key(pykey);
+        class Processor final : public tkrzw::DBM::RecordProcessor {
+         public:
+          Processor(PyObject* pyfunc) : pyfunc_(pyfunc) {
+            Py_INCREF(pyfunc_);
+          }
+          ~Processor() {
+            Py_DECREF(pyfunc_);
+          }
+          std::string_view ProcessFull(std::string_view key, std::string_view value) override {
+            PyObject* pyfuncargs = PyTuple_New(2);
+            PyTuple_SET_ITEM(pyfuncargs, 0, CreatePyBytes(key));
+            PyTuple_SET_ITEM(pyfuncargs, 1, CreatePyBytes(value));
+            PyObject* pyfuncrv = PyObject_CallObject(pyfunc_, pyfuncargs);
+            std::string_view funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+            if (pyfuncrv != nullptr) {
+              if (pyfuncrv == Py_None) {
+                funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+              } else if (pyfuncrv == Py_False) {
+                funcrv = tkrzw::DBM::RecordProcessor::REMOVE;
+              } else {
+                funcrvstr_ = std::make_unique<SoftString>(pyfuncrv);
+                funcrv = funcrvstr_->Get();
+              }
+              Py_DECREF(pyfuncrv);
+            }
+            Py_DECREF(pyfuncargs);
+            return funcrv;
+          }
+          std::string_view ProcessEmpty(std::string_view key) override {
+            PyObject* pyfuncargs = PyTuple_New(2);
+            PyTuple_SET_ITEM(pyfuncargs, 0, CreatePyBytes(key));
+            Py_INCREF(Py_None);
+            PyTuple_SET_ITEM(pyfuncargs, 1, Py_None);
+            PyObject* pyfuncrv = PyObject_CallObject(pyfunc_, pyfuncargs);
+            std::string_view funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+            if (pyfuncrv != nullptr) {
+              if (pyfuncrv == Py_None) {
+                funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+              } else if (pyfuncrv == Py_False) {
+                funcrv = tkrzw::DBM::RecordProcessor::REMOVE;
+              } else {
+                funcrvstr_ = std::make_unique<SoftString>(pyfuncrv);
+                funcrv = funcrvstr_->Get();
+              }
+              Py_DECREF(pyfuncrv);
+            }
+            Py_DECREF(pyfuncargs);
+            return funcrv;
+          }
+         private:
+          PyObject* pyfunc_;
+          std::unique_ptr<SoftString> funcrvstr_;
+        };
+        auto proc = std::make_shared<Processor>(pyfunc);
+        result.emplace_back(std::make_pair(key.Get(), proc));
+      }
+      Py_DECREF(pyfunc);
+      Py_DECREF(pykey);
+    }
+    Py_DECREF(pypair);
+  }
+  return result;
+}
+
+
 // Extracts a list of pairs of string views from a sequence object.
 static std::vector<std::pair<std::string_view, std::string_view>> ExtractSVPairs(
     PyObject* pyseq, std::vector<std::string>* placeholder) {
@@ -368,8 +447,8 @@ static std::vector<std::pair<std::string_view, std::string_view>> ExtractSVPairs
         }
         result.emplace_back(std::make_pair(key_view, value_view));
       }
-      Py_DECREF(pykey);
       Py_DECREF(pyvalue);
+      Py_DECREF(pykey);
     }
     Py_DECREF(pypair);
   }
@@ -1182,7 +1261,7 @@ static PyObject* dbm_Process(PyDBM* self, PyObject* pyargs) {
   }
   if (self->concurrent) {
     return CreatePyTkStatusMove(tkrzw::Status(
-        tkrzw::Status::PRECONDITION_ERROR, "GIL is not supported"));
+        tkrzw::Status::PRECONDITION_ERROR, "the concurrent mode is not supported"));
   }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc != 3) {
@@ -1777,6 +1856,39 @@ static PyObject* dbm_Increment(PyDBM* self, PyObject* pyargs) {
   Py_RETURN_NONE;
 }
 
+
+// Implementation of DBM#ProcessMulti.
+static PyObject* dbm_ProcessMulti(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  if (self->concurrent) {
+    return CreatePyTkStatusMove(tkrzw::Status(
+        tkrzw::Status::PRECONDITION_ERROR, "the concurrent mode is not supported"));
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykfpairs = PyTuple_GET_ITEM(pyargs, 0);
+  const bool writable = PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 1));
+  if (!PySequence_Check(pykfpairs)) {
+    ThrowInvalidArguments("parameters must be sequences of tuples and strings and functions");
+    return nullptr;
+  }
+  const auto& kfpairs_ph = ExtractKFPairs(pykfpairs);
+  std::vector<std::pair<std::string_view, tkrzw::DBM::RecordProcessor*>> kfpairs;
+  kfpairs.reserve(kfpairs_ph.size());
+  for (const auto& key_proc : kfpairs_ph) {
+    auto kfpair = std::make_pair(std::string_view(key_proc.first), key_proc.second.get());
+    kfpairs.emplace_back(std::move(kfpair));
+  }
+  tkrzw::Status status = self->dbm->ProcessMulti(kfpairs, writable);
+  return CreatePyTkStatusMove(std::move(status));
+}
+
 // Implementation of DBM#CompareExchangeMulti.
 static PyObject* dbm_CompareExchangeMulti(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
@@ -1943,7 +2055,7 @@ static PyObject* dbm_ProcessEach(PyDBM* self, PyObject* pyargs) {
   }
   if (self->concurrent) {
     return CreatePyTkStatusMove(tkrzw::Status(
-        tkrzw::Status::PRECONDITION_ERROR, "GIL is not supported"));
+        tkrzw::Status::PRECONDITION_ERROR, "the concurrent mode is not supported"));
   }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc != 2) {
@@ -2589,6 +2701,8 @@ static bool DefineDBM() {
      "Does compare-and-exchange and/or gets the old value of the record."},
     {"Increment", (PyCFunction)dbm_Increment, METH_VARARGS,
      "Increments the numeric value of a record."},
+    {"ProcessMulti", (PyCFunction)dbm_ProcessMulti, METH_VARARGS,
+     "Processes multiple records with arbitrary functions."},
     {"CompareExchangeMulti", (PyCFunction)dbm_CompareExchangeMulti, METH_VARARGS,
      "Compares the values of records and exchanges if the condition meets."},
     {"Rekey", (PyCFunction)dbm_Rekey, METH_VARARGS,

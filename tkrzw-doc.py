@@ -498,7 +498,7 @@ class DBM:
     Processes a record with an arbitrary function.
 
     :param key: The key of the record.
-    :param func: The function to process a record.  The first parameter is the key of the record.  The second parameter is the value of the existing record, or None if it the record doesn't exist.  The return value is a string or bytes to update the record value.  If the return value is None, the record is not modified.  If the return value is False, the record is removed.
+    :param func: The function to process a record.  The first parameter is the key of the record.  The second parameter is the value of the existing record, or None if it the record doesn't exist.  The return value is a string or bytes to update the record value.  If the return value is None, the record is not modified.  If the return value is False (not a false value but the False object), the record is removed.
     :param writable: True if the processor can edit the record.
     :return: The result status.
 
@@ -723,7 +723,7 @@ class DBM:
     """
     Processes each and every record in the database with an arbitrary function.
 
-    :param func: The function to process a record.  The first parameter is the key of the record.  The second parameter is the value of the existing record, or None if it the record doesn't exist.  The return value is a string or bytes to update the record value.  If the return value is None, the record is not modified.  If the return value is False, the record is removed.
+    :param func: The function to process a record.  The first parameter is the key of the record.  The second parameter is the value of the existing record, or None if it the record doesn't exist.  The return value is a string or bytes to update the record value.  If the return value is None, the record is not modified.  If the return value is False (not a false value but the False object), the record is removed.
     :param writable: True if the processor can edit the record.
     :return: The result status.
 
@@ -1272,6 +1272,18 @@ class AsyncDBM:
     :return: The future for the result status and the current value.
 
     The record value is stored as an 8-byte big-endian integer.  Negative is also supported.
+    """
+    pass  # native code
+
+  def ProcessMulti(self, key_func_pairs, writable):
+    """
+    Processes multiple records with arbitrary functions.
+
+    :param key_func_pairs: A list of pairs of keys and their functions.  The first parameter of the function is the key of the record.  The second parameter is the value of the existing record, or None if it the record doesn't exist.  The return value is a string or bytes to update the record value.  If the return value is None, the record is not modified.  If the return value is False (not a false value but the False object), the record is removed.
+    :param writable: True if the processors can edit the record.
+    :return: The result status.
+
+    This method is not available in the concurrent mode because the function cannot be invoked outside the GIL.
     """
     pass  # native code
 

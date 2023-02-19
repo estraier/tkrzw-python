@@ -46,6 +46,14 @@ dbm.Process("doc-3",
 # If you don't update the record, set the third parameter to false.
 dbm.Process("doc-3", lambda key, value: print(key, value), False)
 
+# Adds multiple records at once.
+dbm.ProcessMulti([
+    ("doc-4", lambda key, value: "Tokyo Go!"),
+    ("doc-5", lambda key, value: "Japan Go!")], True)
+
+# Modifies multiple records at once.
+dbm.ProcessMulti([("doc-4", Lower), ("doc-5", Lower)], True)
+
 # Checks the whole content.
 # This uses an external iterator and is relavively slow.
 for key, value in dbm:
@@ -64,8 +72,11 @@ def WordCounter(key, value):
 dbm.ProcessEach(WordCounter, False).OrDie()
 print(word_counts)
 
-# Returning False by Process and ProcessEach removes the record.
+# Returning False by the callbacks removes the record.
 dbm.Process("doc-1", lambda key, value: False, True)
+print(dbm.Count())
+dbm.ProcessMulti([("doc-2", lambda key, value: False),
+                  ("doc-3", lambda key, value: False)], True)
 print(dbm.Count())
 dbm.ProcessEach(lambda key, value: False, True)
 print(dbm.Count())
