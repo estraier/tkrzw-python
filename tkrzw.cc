@@ -1174,6 +1174,59 @@ static PyObject* dbm_Close(PyDBM* self) {
   return CreatePyTkStatusMove(std::move(status));
 }
 
+// Implementation of DBM#Process.
+static PyObject* dbm_Process(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  if (self->concurrent) {
+    return CreatePyTkStatusMove(tkrzw::Status(
+        tkrzw::Status::PRECONDITION_ERROR, "GIL is not supported"));
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 3) {
+    ThrowInvalidArguments(argc < 3 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyfunc = PyTuple_GET_ITEM(pyargs, 1);
+  const bool writable = PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 2));
+  if (!PyCallable_Check(pyfunc)) {
+    ThrowInvalidArguments("non callable is given");
+    return nullptr;
+  }
+  SoftString key(pykey);
+  std::unique_ptr<SoftString> funcrvstr;
+  auto func = [&](std::string_view k, std::string_view v) -> std::string_view {
+    PyObject* pyfuncargs = PyTuple_New(2);
+    PyTuple_SET_ITEM(pyfuncargs, 0, CreatePyBytes(k));
+    if (v.data() == tkrzw::DBM::RecordProcessor::NOOP.data()) {
+      Py_INCREF(Py_None);
+      PyTuple_SET_ITEM(pyfuncargs, 1, Py_None);
+    } else {
+      PyTuple_SET_ITEM(pyfuncargs, 1, CreatePyBytes(v));
+    }
+    PyObject* pyfuncrv = PyObject_CallObject(pyfunc, pyfuncargs);
+    std::string_view funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+    if (pyfuncrv != nullptr) {
+      if (pyfuncrv == Py_None) {
+        funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+      } else if (pyfuncrv == Py_False) {
+        funcrv = tkrzw::DBM::RecordProcessor::REMOVE;
+      } else {
+        funcrvstr = std::make_unique<SoftString>(pyfuncrv);
+        funcrv = funcrvstr->Get();
+      }
+      Py_DECREF(pyfuncrv);
+    }
+    Py_DECREF(pyfuncargs);
+    return funcrv;
+  };
+  tkrzw::Status status = self->dbm->Process(key.Get(), func, writable);
+  return CreatePyTkStatusMove(std::move(status));
+}
+
 // Implementation of DBM#Get.
 static PyObject* dbm_Get(PyDBM* self, PyObject* pyargs) {
   if (self->dbm == nullptr) {
@@ -1882,6 +1935,62 @@ static PyObject* dbm_PushLast(PyDBM* self, PyObject* pyargs) {
   return CreatePyTkStatusMove(std::move(status));
 }
 
+// Implementation of DBM#ProcessEach.
+static PyObject* dbm_ProcessEach(PyDBM* self, PyObject* pyargs) {
+  if (self->dbm == nullptr) {
+    ThrowInvalidArguments("not opened database");
+    return nullptr;
+  }
+  if (self->concurrent) {
+    return CreatePyTkStatusMove(tkrzw::Status(
+        tkrzw::Status::PRECONDITION_ERROR, "GIL is not supported"));
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyfunc = PyTuple_GET_ITEM(pyargs, 0);
+  const bool writable = PyObject_IsTrue(PyTuple_GET_ITEM(pyargs, 1));
+  if (!PyCallable_Check(pyfunc)) {
+    ThrowInvalidArguments("non callable is given");
+    return nullptr;
+  }
+  std::unique_ptr<SoftString> funcrvstr;
+  auto func = [&](std::string_view k, std::string_view v) -> std::string_view {
+    PyObject* pyfuncargs = PyTuple_New(2);
+    if (k.data() == tkrzw::DBM::RecordProcessor::NOOP.data()) {
+      Py_INCREF(Py_None);
+      PyTuple_SET_ITEM(pyfuncargs, 0, Py_None);
+    } else {
+      PyTuple_SET_ITEM(pyfuncargs, 0, CreatePyBytes(k));
+    }
+    if (v.data() == tkrzw::DBM::RecordProcessor::NOOP.data()) {
+      Py_INCREF(Py_None);
+      PyTuple_SET_ITEM(pyfuncargs, 1, Py_None);
+    } else {
+      PyTuple_SET_ITEM(pyfuncargs, 1, CreatePyBytes(v));
+    }
+    PyObject* pyfuncrv = PyObject_CallObject(pyfunc, pyfuncargs);
+    std::string_view funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+    if (pyfuncrv != nullptr) {
+      if (pyfuncrv == Py_None) {
+        funcrv = tkrzw::DBM::RecordProcessor::NOOP;
+      } else if (pyfuncrv == Py_False) {
+        funcrv = tkrzw::DBM::RecordProcessor::REMOVE;
+      } else {
+        funcrvstr = std::make_unique<SoftString>(pyfuncrv);
+        funcrv = funcrvstr->Get();
+      }
+      Py_DECREF(pyfuncrv);
+    }
+    Py_DECREF(pyfuncargs);
+    return funcrv;
+  };
+  tkrzw::Status status = self->dbm->ProcessEach(func, writable);
+  return CreatePyTkStatusMove(std::move(status));
+}
+
 // Implementation of DBM#Count.
 static PyObject* dbm_Count(PyDBM* self) {
   if (self->dbm == nullptr) {
@@ -2448,6 +2557,8 @@ static bool DefineDBM() {
      "Opens a database file."},
     {"Close", (PyCFunction)dbm_Close, METH_NOARGS,
      "Closes the database file."},
+    {"Process", (PyCFunction)dbm_Process, METH_VARARGS,
+     "Processes a record with an arbitrary function."},
     {"Get", (PyCFunction)dbm_Get, METH_VARARGS,
      "Gets the value of a record of a key."},
     {"GetStr", (PyCFunction)dbm_GetStr, METH_VARARGS,
@@ -2488,6 +2599,8 @@ static bool DefineDBM() {
      "Gets the first record as strings and removes it."},
     {"PushLast", (PyCFunction)dbm_PushLast, METH_VARARGS,
      "Adds a record with a key of the current timestamp."},
+    {"ProcessEach", (PyCFunction)dbm_ProcessEach, METH_VARARGS,
+     "Processes each and every record in the database with an arbitrary function."},
     {"Count", (PyCFunction)dbm_Count, METH_NOARGS,
      "Gets the number of records."},
     {"GetFileSize", (PyCFunction)dbm_GetFileSize, METH_NOARGS,

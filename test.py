@@ -482,60 +482,55 @@ class TestTkrzw(unittest.TestCase):
         self.assertEqual(Status.SUCCESS, dbm.Open(path, False, **open_params))
         self.assertEqual(Status.SUCCESS, dbm.Close())
 
-  # Iterator tests.
-  def testIterator(self):
-    confs = [
-      {"path": "casket.tkt",
-       "open_params": {"num_buckets": 100, "max_page_size": 50, "max_branches": 2}},
-      {"path": "casket.tks",
-       "open_params": {"step_unit": 3, "max_level": 3}},
-      {"path": "casket.tkt",
-       "open_params": {"num_shards": 4,
-                       "num_buckets": 100, "max_page_size": 50, "max_branches": 2}},
-    ]
-    for conf in confs:
-      path = conf["path"]
-      path = self._make_tmp_path(path) if path else ""
-      dbm = DBM()
-      open_params = conf["open_params"].copy()
-      open_params["truncate"] = True
-      self.assertEqual(Status.SUCCESS, dbm.Open(path, True, **open_params))
-      iter = dbm.MakeIterator()
-      self.assertEqual(Status.SUCCESS, iter.First())
-      self.assertEqual(Status.SUCCESS, iter.Last())
-      self.assertEqual(Status.SUCCESS, iter.Jump(""))
-      self.assertEqual(Status.SUCCESS, iter.JumpLower("", True))
-      self.assertEqual(Status.SUCCESS, iter.JumpUpper("", True))
-      for i in range(1, 101):
-        key = "{:03d}".format(i)
-        value = str(i * i)
-        self.assertEqual(Status.SUCCESS, dbm.Set(key, value, False))
-      self.assertEqual(Status.SUCCESS, dbm.Synchronize(False))
-      self.assertEqual(Status.SUCCESS, iter.First())
-      self.assertEqual("001", iter.GetKeyStr())
-      self.assertEqual("1", iter.GetValueStr())
-      self.assertEqual(Status.SUCCESS, iter.Last())
-      self.assertEqual("100", iter.GetKeyStr())
-      self.assertEqual("10000", iter.GetValueStr())
-      self.assertEqual(Status.SUCCESS, iter.Jump("050"))
-      self.assertEqual("050", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.JumpLower("050", True))
-      self.assertEqual("050", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.Previous())
-      self.assertEqual("049", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.JumpLower("050", False))
-      self.assertEqual("049", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.Next())
-      self.assertEqual("050", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.JumpUpper("050", True))
-      self.assertEqual("050", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.Previous())
-      self.assertEqual("049", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.JumpUpper("050", False))
-      self.assertEqual("051", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, iter.Next())
-      self.assertEqual("052", iter.GetKeyStr())
-      self.assertEqual(Status.SUCCESS, dbm.Close())
+  # Basic process-related functions.
+  def testProcess(self):
+    path = self._make_tmp_path("casket.tkh")
+    dbm = DBM()
+    self.assertEqual(Status.SUCCESS, dbm.Open(path, True, truncate=True, num_buckets=1000))
+    self.assertEqual(Status.SUCCESS, dbm.Process("abc", lambda k, v: None, True))
+    self.assertEqual(None, dbm.GetStr("abc"))
+    self.assertEqual(Status.SUCCESS, dbm.Process("abc", lambda k, v: False, True))
+    self.assertEqual(None, dbm.GetStr("abc"))
+    self.assertEqual(Status.SUCCESS, dbm.Process("abc", lambda k, v: "ABCDE", True))
+    self.assertEqual("ABCDE", dbm.GetStr("abc"))
+    def Processor1(k, v):
+      self.assertEqual(b"abc", k)
+      self.assertEqual(b"ABCDE", v)
+      return None
+    self.assertEqual(Status.SUCCESS, dbm.Process("abc", Processor1, False))
+    self.assertEqual(Status.SUCCESS, dbm.Process("abc", lambda k, v: False, True))
+    self.assertEqual(None, dbm.GetStr("abc"))
+    def Processor2(k, v):
+      self.assertEqual(b"abc", k)
+      self.assertEqual(None, v)
+      return None
+    self.assertEqual(Status.SUCCESS, dbm.Process("abc", Processor2, False))
+    for i in range(10):
+      self.assertEqual(Status.SUCCESS, dbm.Process(i, lambda k, v: i * i, True))
+    self.assertEqual(10, dbm.Count())
+    counters = {"empty": 0, "full": 0}
+    def Processor3(k, v):
+      if k:
+        counters["full"] += 1
+        self.assertEqual(int(k) ** 2, int(v))
+      else:
+        counters["empty"] += 1
+      return None
+    self.assertEqual(Status.SUCCESS, dbm.ProcessEach(Processor3, False))
+    self.assertEqual(2, counters["empty"])
+    self.assertEqual(10, counters["full"])
+    def Processor4(k, v):
+      if not k: return
+      print(v, int(int(v) ** 0.5))
+      return int(int(v) ** 0.5)
+    self.assertEqual(Status.SUCCESS, dbm.ProcessEach(Processor4, True))
+    def Processor5(k, v):
+      if not k: return
+      self.assertEqual(int(k), int(v))
+      return False
+    self.assertEqual(Status.SUCCESS, dbm.ProcessEach(Processor5, True))
+    self.assertEqual(0, dbm.Count())
+    self.assertEqual(Status.SUCCESS, dbm.Close())
 
   # Thread tests.
   def testThread(self):

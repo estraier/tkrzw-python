@@ -191,6 +191,68 @@ The following code is a typical example of coroutine usage.  The AsyncDBM class 
 
  asyncio.run(main())
 
+The following code uses Process and ProcessEach functions which take callback functions to process the record efficiently.  Process is useful to update a record atomically according to the current value.  ProcessEach is useful to access every record in the most efficient way.::
+
+ import tkrzw
+ import re
+
+ # Opens the database.
+ dbm = tkrzw.DBM()
+ status = dbm.Open("casket.tkh", True, truncate=True, num_buckets=1000).OrDie()
+
+ # Sets records with lambda functions.
+ dbm.Set("doc-1", "Tokyo is the capital city of Japan.").OrDie()
+ dbm.Set("doc-2", "Is she living in Tokyo, Japan?").OrDie()
+
+ # Does the same thing with a lambda function.
+ dbm.Process("doc-3", lambda key, value: "She must leave Tokyo!", True).OrDie()
+
+ # Lowers record values.
+ def Lower(key, value):
+     # If no matching record, None is given as the value.
+     if not value: return None
+     # Sets the new value.
+     # Note that the key and the value are a "bytes" object.
+     return value.decode().lower()
+ dbm.Process("doc-1", Lower, True).OrDie()
+ dbm.Process("doc-2", Lower, True).OrDie()
+ dbm.Process("non-existent", Lower, True).OrDie()
+
+ # Does the same thing with a lambda function.
+ dbm.Process("doc-3",
+             lambda key, value: value.decode().lower() if value else None,
+             True).OrDie()
+
+ # If you don't update the record, set the third parameter to false.
+ dbm.Process("doc-3", lambda key, value: print(key, value), False)
+
+ # Checks the whole content.
+ # This uses an external iterator and is relavively slow.
+ for key, value in dbm:
+     print(key.decode(), value.decode())
+    
+ # Function for word counting.
+ word_counts = {}
+ def WordCounter(key, value):
+     if not key: return
+     value = value.decode()
+     words = [x for x in re.split(r"\W+", value) if x]
+     for word in words:
+         word_counts[word] = (word_counts.get(word) or 0) + 1
+
+ # The second parameter should be false if the value is not updated.
+ dbm.ProcessEach(WordCounter, False).OrDie()
+ print(word_counts)
+
+ # Returning False by Process and ProcessEach removes the record.
+ dbm.Process("doc-1", lambda key, value: False, True)
+ print(dbm.Count())
+ dbm.ProcessEach(lambda key, value: False, True)
+ print(dbm.Count())
+
+ # Closes the database.
+ dbm.Close().OrDie()
+
 Indices and tables
 ==================
 
