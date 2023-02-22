@@ -198,12 +198,12 @@ The following code uses Process and ProcessEach functions which take callback fu
 
  # Opens the database.
  dbm = tkrzw.DBM()
- dbm.Open("casket.tkh", True, truncate=True, num_buckets=1000).OrDie()
+ dbm.Open("casket.tkh", True, truncate=True, num_buckets=1000)
 
  # Sets records with lambda functions.
- dbm.Process("doc-1", lambda key, value: "Tokyo is the capital city of Japan.", True).OrDie()
- dbm.Process("doc-2", lambda key, value: "Is she living in Tokyo, Japan?", True).OrDie()
- dbm.Process("doc-3", lambda key, value: "She must leave Tokyo!", True).OrDie()
+ dbm.Process("doc-1", lambda key, value: "Tokyo is the capital city of Japan.", True)
+ dbm.Process("doc-2", lambda key, value: "Is she living in Tokyo, Japan?", True)
+ dbm.Process("doc-3", lambda key, value: "She must leave Tokyo!", True)
 
  # Lowers record values.
  def Lower(key, value):
@@ -212,14 +212,14 @@ The following code uses Process and ProcessEach functions which take callback fu
      # Sets the new value.
      # Note that the key and the value are a "bytes" object.
      return value.decode().lower()
- dbm.Process("doc-1", Lower, True).OrDie()
- dbm.Process("doc-2", Lower, True).OrDie()
- dbm.Process("non-existent", Lower, True).OrDie()
+ dbm.Process("doc-1", Lower, True)
+ dbm.Process("doc-2", Lower, True)
+ dbm.Process("non-existent", Lower, True)
 
  # Does the same thing with a lambda function.
  dbm.Process("doc-3",
              lambda key, value: value.decode().lower() if value else None,
-             True).OrDie()
+             True)
 
  # If you don't update the record, set the third parameter to false.
  dbm.Process("doc-3", lambda key, value: print(key, value), False)
@@ -247,7 +247,7 @@ The following code uses Process and ProcessEach functions which take callback fu
          word_counts[word] = (word_counts.get(word) or 0) + 1
 
  # The second parameter should be false if the value is not updated.
- dbm.ProcessEach(WordCounter, False).OrDie()
+ dbm.ProcessEach(WordCounter, False)
  print(word_counts)
 
  # Returning False by the callbacks removes the record.
@@ -260,7 +260,7 @@ The following code uses Process and ProcessEach functions which take callback fu
  print(dbm.Count())
 
  # Closes the database.
- dbm.Close().OrDie()
+ dbm.Close()
 
 Indices and tables
 ==================
