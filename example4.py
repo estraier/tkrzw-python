@@ -23,8 +23,6 @@ dbm.Open("casket.tkh", True, truncate=True, num_buckets=1000).OrDie()
 # Sets records with lambda functions.
 dbm.Process("doc-1", lambda key, value: "Tokyo is the capital city of Japan.", True).OrDie()
 dbm.Process("doc-2", lambda key, value: "Is she living in Tokyo, Japan?", True).OrDie()
-
-# Does the same thing with a lambda function.
 dbm.Process("doc-3", lambda key, value: "She must leave Tokyo!", True).OrDie()
 
 # Lowers record values.
