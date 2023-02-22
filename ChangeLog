@@ -1,3 +1,9 @@
+2023-02-22  Mikio Hirabayashi  <hirarin@gmail.com>
+
+	- Release: 0.1.29
+
+	- Process, ProcessMulti, and ProcessEach are added to DBM.
+
 2021-11-13  Mikio Hirabayashi  <hirarin@gmail.com>
 
 	- Release: 0.1.28
