@@ -191,7 +191,7 @@ The following code is a typical example of coroutine usage.  The AsyncDBM class 
 
  asyncio.run(main())
 
-The following code uses Process and ProcessEach functions which take callback functions to process the record efficiently.  Process is useful to update a record atomically according to the current value.  ProcessEach is useful to access every record in the most efficient way.::
+The following code uses Process, ProcessMulti, and ProcessEach functions which take callback functions to process the record efficiently.  Process is useful to update a record atomically according to the current value.  ProcessEach is useful to access every record in the most efficient way.::
 
  import tkrzw
  import re
