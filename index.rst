@@ -198,7 +198,7 @@ The following code uses Process and ProcessEach functions which take callback fu
 
  # Opens the database.
  dbm = tkrzw.DBM()
- status = dbm.Open("casket.tkh", True, truncate=True, num_buckets=1000).OrDie()
+ dbm.Open("casket.tkh", True, truncate=True, num_buckets=1000).OrDie()
 
  # Sets records with lambda functions.
  dbm.Set("doc-1", "Tokyo is the capital city of Japan.").OrDie()
