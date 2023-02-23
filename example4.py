@@ -48,6 +48,8 @@ dbm.Process("doc-3", lambda key, value: print(key, value), False)
 dbm.ProcessMulti([
     ("doc-4", lambda key, value: "Tokyo Go!"),
     ("doc-5", lambda key, value: "Japan Go!")], True)
+
+# Modifies multiple records at once.
 dbm.ProcessMulti([("doc-4", Lower), ("doc-5", Lower)], True)
 
 # Checks the whole content.
