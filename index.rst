@@ -228,6 +228,8 @@ The following code uses Process, ProcessMulti, and ProcessEach functions which t
  dbm.ProcessMulti([
      ("doc-4", lambda key, value: "Tokyo Go!"),
      ("doc-5", lambda key, value: "Japan Go!")], True)
+
+ # Modifies multiple records at once.
  dbm.ProcessMulti([("doc-4", Lower), ("doc-5", Lower)], True)
 
  # Checks the whole content.
