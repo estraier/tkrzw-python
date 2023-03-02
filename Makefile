@@ -6,7 +6,7 @@ PACKAGEDIR = $(PACKAGE)-$(VERSION)
 PACKAGETGZ = $(PACKAGE)-$(VERSION).tar.gz
 
 PYTHON = python3
-RUNENV = LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/lib
+RUNENV = LD_LIBRARY_PATH=.:/lib:/usr/lib:/usr/local/lib:$(HOME)/local/lib:$(HOME)/lib:$(LD_LIBRARY_PATH)
 
 all :
 	$(PYTHON) setup.py build
