@@ -2515,7 +2515,7 @@ static PyObject* dbm_MakeIterator(PyDBM* self) {
 // Implementation of DBM.RestoreDatabase.
 static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
-  if (argc < 2 || argc > 4) {
+  if (argc < 2 || argc > 5) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
     return nullptr;
   }
@@ -2523,6 +2523,7 @@ static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
   SoftString new_file_path(PyTuple_GET_ITEM(pyargs, 1));
   SoftString class_name(argc > 2 ? PyTuple_GET_ITEM(pyargs, 2) : Py_None);
   const int64_t end_offset = argc > 3 ? PyObjToInt(PyTuple_GET_ITEM(pyargs, 3)) : -1;
+  SoftString cipher_key(argc > 4 ? PyTuple_GET_ITEM(pyargs, 4) : Py_None);
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   int32_t num_shards = 0;
   if (tkrzw::ShardDBM::GetNumberOfShards(std::string(old_file_path.Get()), &num_shards) ==
@@ -2530,12 +2531,12 @@ static PyObject* dbm_RestoreDatabase(PyObject* self, PyObject* pyargs) {
     NativeLock lock(true);
     status = tkrzw::ShardDBM::RestoreDatabase(
         std::string(old_file_path.Get()), std::string(new_file_path.Get()),
-        std::string(class_name.Get()), end_offset);
+        std::string(class_name.Get()), end_offset, cipher_key.Get());
   } else {
     NativeLock lock(true);
     status = tkrzw::PolyDBM::RestoreDatabase(
         std::string(old_file_path.Get()), std::string(new_file_path.Get()),
-        std::string(class_name.Get()), end_offset);
+        std::string(class_name.Get()), end_offset, cipher_key.Get());
   }
   return CreatePyTkStatusMove(std::move(status));
 }

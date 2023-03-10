@@ -436,7 +436,7 @@ class DBM:
     For HashDBM, these optional parameters are supported.
       - update_mode (string): How to update the database file: "UPDATE_IN_PLACE" for the in-palce or "UPDATE_APPENDING" for the appending mode.
       - record_crc_mode (string): How to add the CRC data to the record: "RECORD_CRC_NONE" to add no CRC to each record, "RECORD_CRC_8" to add CRC-8 to each record, "RECORD_CRC_16" to add CRC-16 to each record, or "RECORD_CRC_32" to add CRC-32 to each record.
-      - record_comp_mode (string): How to compress the record data: "RECORD_COMP_NONE" to do no compression, "RECORD_COMP_ZLIB" to compress with ZLib, "RECORD_COMP_ZSTD" to compress with ZStd, "RECORD_COMP_LZ4" to compress with LZ4, "RECORD_COMP_LZMA" to compress with LZMA.
+      - record_comp_mode (string): How to compress the record data: "RECORD_COMP_NONE" to do no compression, "RECORD_COMP_ZLIB" to compress with ZLib, "RECORD_COMP_ZSTD" to compress with ZStd, "RECORD_COMP_LZ4" to compress with LZ4, "RECORD_COMP_LZMA" to compress with LZMA, "RECORD_COMP_RC4" to cipher with RC4, "RECORD_COMP_AES" to cipher with AES.
       - offset_width (int): The width to represent the offset of records.
       - align_pow (int): The power to align records.
       - num_buckets (int): The number of buckets for hashing.
@@ -444,6 +444,7 @@ class DBM:
       - fbp_capacity (int): The capacity of the free block pool.
       - min_read_size (int): The minimum reading size to read a record.
       - cache_buckets (bool): True to cache the hash buckets on memory.
+      - cipher_key (string): The encryption key for cipher compressors.
 
     For TreeDBM, all optional parameters for HashDBM are available.  In addition, these optional parameters are supported.
       - max_page_size (int): The maximum size of a page.
@@ -916,7 +917,8 @@ class DBM:
     pass  # native code
 
   @classmethod
-  def RestoreDatabase(cls, old_file_path, new_file_path, class_name="", end_offset=-1):
+  def RestoreDatabase(cls, old_file_path, new_file_path, class_name="",
+                      end_offset=-1, cipher_key=""):
     """
     Restores a broken database as a new healthy database.
 
@@ -924,6 +926,7 @@ class DBM:
     :param new_file_path: The path of the new database to be created.
     :param class_name: The name of the database class.  If it is None or empty, the class is guessed from the file extension.
     :param end_offset: The exclusive end offset of records to read.  Negative means unlimited.  0 means the size when the database is synched or closed properly.  Using a positive value is not meaningful if the number of shards is more than one.
+    :param cipher_key: The encryption key for cipher compressors.
     :return: The result status.
     """
 
