@@ -21,7 +21,7 @@ import sys
 from setuptools import Extension, setup
 
 package_name = "tkrzw"
-package_version = "0.1.29"
+package_version = "0.1.30"
 package_description = "a set of implementations of DBM"
 package_author = "Mikio Hirabayashi"
 package_author_email = "hirarin@gmail.com"
