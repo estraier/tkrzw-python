@@ -17,6 +17,12 @@ Then, run these commands.
   make check
   sudo make install
 
+You can build the Tkrzw-python docker image with the following command after building the Tkrzw image.
+
+```
+$ docker build -t tkrzw-python .
+```
+
 See https://dbmx.net/tkrzw/api-python/ for details of the API.
 
 Thanks.
