@@ -1655,8 +1655,8 @@ class Index:
   def GetValues(self, key, max=0):
     """
     Gets all values of records of a key.
-    :param key The key to look for.
-    :param max The maximum number of values to get.  0 means unlimited.
+    :param key: The key to look for.
+    :param max: The maximum number of values to get.  0 means unlimited.
     :return: A list of all values of the key.  An empty list is returned on failure.
     """
     pass  # native code
@@ -1664,8 +1664,8 @@ class Index:
   def GetValuesStr(self, key, max=0):
     """
     Gets all values of records of a key, as strings.
-    :param key The key to look for.
-    :param max The maximum number of values to get.  0 means unlimited.
+    :param key: The key to look for.
+    :param max: The maximum number of values to get.  0 means unlimited.
     :return: A list of all values of the key.  An empty list is returned on failure.
     """
     pass  # native code
@@ -1674,8 +1674,8 @@ class Index:
     """
     Adds a record.
 
-    :param key The key of the record.  This can be an arbitrary expression to search the index.
-    :param value The value of the record.  This should be a primary value of another database.
+    :param key: The key of the record.  This can be an arbitrary expression to search the index.
+    :param value: The value of the record.  This should be a primary value of another database.
     :return: The result status.
     """
     pass  # native code
@@ -1684,8 +1684,8 @@ class Index:
     """
     Removes a record.
 
-    :param key The key of the record.
-    :param value The value of the record.
+    :param key: The key of the record.
+    :param value: The value of the record.
     :return: The result status.
     """
     pass  # native code
@@ -1725,7 +1725,7 @@ class Index:
     """
     Synchronizes the content of the index to the file system.
 
-    :param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+    :param hard: True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
     :return: The result status.
     """
     pass  # native code
@@ -1807,8 +1807,8 @@ class IndexIterator:
     """
     Initializes the iterator to indicate a specific range.
 
-    :param key The key of the lower bound.
-    :param value The value of the lower bound.
+    :param key: The key of the lower bound.
+    :param value: The value of the lower bound.
     """
     pass  # native code
 
