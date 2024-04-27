@@ -50,6 +50,8 @@ PyObject* cls_dbm;
 PyObject* cls_iter;
 PyObject* cls_asyncdbm;
 PyObject* cls_file;
+PyObject* cls_index;
+PyObject* cls_indexiter;
 PyObject* obj_dbm_any_data;
 
 // Python object of Utility.
@@ -102,6 +104,20 @@ struct PyAsyncDBM {
 struct PyFile {
   PyObject_HEAD
   tkrzw::PolyFile* file;
+  bool concurrent;
+};
+
+// Python object of Index.
+struct PyIndex {
+  PyObject_HEAD
+  tkrzw::PolyIndex* index;
+  bool concurrent;
+};
+
+// Python object of IndexIterator.
+struct PyIndexIterator {
+  PyObject_HEAD
+  tkrzw::PolyIndex::Iterator* iter;
   bool concurrent;
 };
 
@@ -542,14 +558,14 @@ static PyObject* utility_EditDistanceLev(PyObject* self, PyObject* pyargs) {
 
 // Defines the Utility class.
 static bool DefineUtility() {
-  static PyTypeObject type_utility = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_utility + zoff, 0, sizeof(type_utility) - zoff);
-  type_utility.tp_name = "tkrzw.Utility";
-  type_utility.tp_basicsize = sizeof(PyUtility);
-  type_utility.tp_itemsize = 0;
-  type_utility.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_utility.tp_doc = "Library utilities.";
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.Utility";
+  pytype.tp_basicsize = sizeof(PyUtility);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Library utilities.";
   static PyMethodDef methods[] = {
     {"GetMemoryCapacity", (PyCFunction)utility_GetMemoryCapacity, METH_CLASS | METH_NOARGS,
      "Gets the memory capacity of the platform."},
@@ -563,9 +579,9 @@ static bool DefineUtility() {
      "Gets the Levenshtein edit distance of two Unicode strings."},
     {nullptr, nullptr, 0, nullptr},
   };
-  type_utility.tp_methods = methods;
-  if (PyType_Ready(&type_utility) != 0) return false;
-  cls_utility = (PyObject*)&type_utility;
+  pytype.tp_methods = methods;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_utility = (PyObject*)&pytype;
   Py_INCREF(cls_utility);
   if (!SetConstStr(cls_utility, "VERSION", tkrzw::PACKAGE_VERSION)) return false;
   if (!SetConstStr(cls_utility, "OS_NAME", tkrzw::OS_NAME)) return false;
@@ -734,20 +750,20 @@ static PyObject* status_CodeName(PyObject* self, PyObject* pyargs) {
 
 // Defines the Status class.
 static bool DefineStatus() {
-  static PyTypeObject type_status = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_status + zoff, 0, sizeof(type_status) - zoff);
-  type_status.tp_name = "tkrzw.Status";
-  type_status.tp_basicsize = sizeof(PyTkStatus);
-  type_status.tp_itemsize = 0;
-  type_status.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_status.tp_doc = "Status of operations.";
-  type_status.tp_new = status_new;
-  type_status.tp_dealloc = (destructor)status_dealloc;
-  type_status.tp_init = (initproc)status_init;
-  type_status.tp_repr = (unaryfunc)status_repr;
-  type_status.tp_str = (unaryfunc)status_str;
-  type_status.tp_richcompare = (richcmpfunc)status_richcmp;
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.Status";
+  pytype.tp_basicsize = sizeof(PyTkStatus);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Status of operations.";
+  pytype.tp_new = status_new;
+  pytype.tp_dealloc = (destructor)status_dealloc;
+  pytype.tp_init = (initproc)status_init;
+  pytype.tp_repr = (unaryfunc)status_repr;
+  pytype.tp_str = (unaryfunc)status_str;
+  pytype.tp_richcompare = (richcmpfunc)status_richcmp;
   static PyMethodDef methods[] = {
     {"Set", (PyCFunction)status_Set, METH_VARARGS,
      "Set the code and the message."},
@@ -765,9 +781,9 @@ static bool DefineStatus() {
      "Gets the string name of a status code."},
     {nullptr, nullptr, 0, nullptr},
   };
-  type_status.tp_methods = methods;
-  if (PyType_Ready(&type_status) != 0) return false;
-  cls_status = (PyObject*)&type_status;
+  pytype.tp_methods = methods;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_status = (PyObject*)&pytype;
   Py_INCREF(cls_status);
   if (!SetConstLong(cls_status, "SUCCESS",
                     (int64_t)tkrzw::Status::SUCCESS)) return false;
@@ -852,28 +868,28 @@ static PyObject* expt_GetStatus(PyException* self) {
 
 // Defines the StatusException class.
 static bool DefineStatusException() {
-  static PyTypeObject type_expt = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_expt + zoff, 0, sizeof(type_expt) - zoff);
-  type_expt.tp_name = "tkrzw.StatusException";
-  type_expt.tp_basicsize = sizeof(PyException);
-  type_expt.tp_itemsize = 0;
-  type_expt.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_expt.tp_doc = "Exception to convey the status of operations.";
-  type_expt.tp_new = expt_new;
-  type_expt.tp_dealloc = (destructor)expt_dealloc;
-  type_expt.tp_init = (initproc)expt_init;
-  type_expt.tp_repr = (unaryfunc)expt_repr;
-  type_expt.tp_str = (unaryfunc)expt_str;
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.StatusException";
+  pytype.tp_basicsize = sizeof(PyException);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Exception to convey the status of operations.";
+  pytype.tp_new = expt_new;
+  pytype.tp_dealloc = (destructor)expt_dealloc;
+  pytype.tp_init = (initproc)expt_init;
+  pytype.tp_repr = (unaryfunc)expt_repr;
+  pytype.tp_str = (unaryfunc)expt_str;
   static PyMethodDef methods[] = {
     {"GetStatus", (PyCFunction)expt_GetStatus, METH_NOARGS,
      "Get the status object." },
     {nullptr, nullptr, 0, nullptr}
   };
-  type_expt.tp_methods = methods;
-  type_expt.tp_base = (PyTypeObject*)PyExc_RuntimeError;
-  if (PyType_Ready(&type_expt) != 0) return false;
-  cls_expt = (PyObject*)&type_expt;
+  pytype.tp_methods = methods;
+  pytype.tp_base = (PyTypeObject*)PyExc_RuntimeError;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_expt = (PyObject*)&pytype;
   Py_INCREF(cls_expt);
   if (PyModule_AddObject(mod_tkrzw, "StatusException", cls_expt) != 0) return false;
   return true;
@@ -1067,19 +1083,19 @@ static PyObject* future_Get(PyFuture* self) {
 
 // Defines the Future class.
 static bool DefineFuture() {
-  static PyTypeObject type_future = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_future + zoff, 0, sizeof(type_future) - zoff);
-  type_future.tp_name = "tkrzw.Future";
-  type_future.tp_basicsize = sizeof(PyFuture);
-  type_future.tp_itemsize = 0;
-  type_future.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_future.tp_doc = "Future to monitor the result of asynchronous operations.";
-  type_future.tp_new = future_new;
-  type_future.tp_dealloc = (destructor)future_dealloc;
-  type_future.tp_init = (initproc)future_init;
-  type_future.tp_repr = (unaryfunc)future_repr;
-  type_future.tp_str = (unaryfunc)future_str;
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.Future";
+  pytype.tp_basicsize = sizeof(PyFuture);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Future to monitor the result of asynchronous operations.";
+  pytype.tp_new = future_new;
+  pytype.tp_dealloc = (destructor)future_dealloc;
+  pytype.tp_init = (initproc)future_init;
+  pytype.tp_repr = (unaryfunc)future_repr;
+  pytype.tp_str = (unaryfunc)future_str;
   static PyMethodDef methods[] = {
     {"Wait", (PyCFunction)future_Wait, METH_VARARGS,
      "Waits for the operation to be done."},
@@ -1087,18 +1103,18 @@ static bool DefineFuture() {
      "Waits for the operation to be done and gets the result status." },
     {nullptr, nullptr, 0, nullptr}
   };
-  type_future.tp_methods = methods;
+  pytype.tp_methods = methods;
   static PyAsyncMethods async_methods;
   std::memset(&async_methods, 0, sizeof(async_methods));
   async_methods.am_await = (unaryfunc)future_await;
-  type_future.tp_as_async = &async_methods;
+  pytype.tp_as_async = &async_methods;
   static PyMappingMethods map_methods;
   std::memset(&map_methods, 0, sizeof(map_methods));
-  type_future.tp_iter = (getiterfunc)future_iter;
-  type_future.tp_iternext = (iternextfunc)future_iternext;
-  type_future.tp_as_mapping = &map_methods;
-  if (PyType_Ready(&type_future) != 0) return false;
-  cls_future = (PyObject*)&type_future;
+  pytype.tp_iter = (getiterfunc)future_iter;
+  pytype.tp_iternext = (iternextfunc)future_iternext;
+  pytype.tp_as_mapping = &map_methods;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_future = (PyObject*)&pytype;
   Py_INCREF(cls_future);
   if (PyModule_AddObject(mod_tkrzw, "Future", cls_future) != 0) return false;
   return true;
@@ -2652,19 +2668,19 @@ static PyObject* dbm_iter(PyDBM* self) {
 
 // Defines the DBM class.
 static bool DefineDBM() {
-  static PyTypeObject type_dbm = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_dbm + zoff, 0, sizeof(type_dbm) - zoff);
-  type_dbm.tp_name = "tkrzw.DBM";
-  type_dbm.tp_basicsize = sizeof(PyDBM);
-  type_dbm.tp_itemsize = 0;
-  type_dbm.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_dbm.tp_doc = "Polymorphic database manager.";
-  type_dbm.tp_new = dbm_new;
-  type_dbm.tp_dealloc = (destructor)dbm_dealloc;
-  type_dbm.tp_init = (initproc)dbm_init;
-  type_dbm.tp_repr = (unaryfunc)dbm_repr;
-  type_dbm.tp_str = (unaryfunc)dbm_str;
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.DBM";
+  pytype.tp_basicsize = sizeof(PyDBM);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Polymorphic database manager.";
+  pytype.tp_new = dbm_new;
+  pytype.tp_dealloc = (destructor)dbm_dealloc;
+  pytype.tp_init = (initproc)dbm_init;
+  pytype.tp_repr = (unaryfunc)dbm_repr;
+  pytype.tp_str = (unaryfunc)dbm_str;
   static PyMethodDef methods[] = {
     {"Open", (PyCFunction)dbm_Open, METH_VARARGS | METH_KEYWORDS,
      "Opens a database file."},
@@ -2760,20 +2776,20 @@ static bool DefineDBM() {
      "Makes an iterator for each record."},   
     {nullptr, nullptr, 0, nullptr},
   };
-  type_dbm.tp_methods = methods;
+  pytype.tp_methods = methods;
   static PyMappingMethods map_methods;
   std::memset(&map_methods, 0, sizeof(map_methods));
   map_methods.mp_length = (lenfunc)dbm_len;
   map_methods.mp_subscript = (binaryfunc)dbm_getitem;
   map_methods.mp_ass_subscript = (objobjargproc)dbm_setitem;
-  type_dbm.tp_as_mapping = &map_methods;
+  pytype.tp_as_mapping = &map_methods;
   static PySequenceMethods seq_methods;
   std::memset(&seq_methods, 0, sizeof(seq_methods));
   seq_methods.sq_contains = (objobjproc)dbm_contains;
-  type_dbm.tp_as_sequence = &seq_methods;
-  type_dbm.tp_iter = (getiterfunc)dbm_iter;
-  if (PyType_Ready(&type_dbm) != 0) return false;
-  cls_dbm = (PyObject*)&type_dbm;
+  pytype.tp_as_sequence = &seq_methods;
+  pytype.tp_iter = (getiterfunc)dbm_iter;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_dbm = (PyObject*)&pytype;
   Py_INCREF(cls_dbm);
   obj_dbm_any_data = PyBytes_FromStringAndSize("\0[ANY]\0", 7);
   if (PyObject_GenericSetAttr(
@@ -2830,7 +2846,8 @@ static PyObject* iter_repr(PyIterator* self) {
       key = "(unlocated)";
     }
   }
-  return CreatePyString(tkrzw::StrCat("<tkrzw.Iterator: ", tkrzw::StrEscapeC(key, true), ">"));
+  return CreatePyString(tkrzw::StrCat(
+      "<tkrzw.Iterator: key=", tkrzw::StrEscapeC(key, true), ">"));
 }
 
 // Implementation of Iterator#__str__.
@@ -3267,19 +3284,19 @@ static PyObject* iter_iternext(PyIterator* self) {
 
 // Defines the Iterator class.
 static bool DefineIterator() {
-  static PyTypeObject type_iter = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_iter + zoff, 0, sizeof(type_iter) - zoff);
-  type_iter.tp_name = "tkrzw.Iterator";
-  type_iter.tp_basicsize = sizeof(PyIterator);
-  type_iter.tp_itemsize = 0;
-  type_iter.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_iter.tp_doc = "Iterator for each record.";
-  type_iter.tp_new = iter_new;
-  type_iter.tp_dealloc = (destructor)iter_dealloc;
-  type_iter.tp_init = (initproc)iter_init;
-  type_iter.tp_repr = (unaryfunc)iter_repr;
-  type_iter.tp_str = (unaryfunc)iter_str;
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.Iterator";
+  pytype.tp_basicsize = sizeof(PyIterator);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Iterator for each record.";
+  pytype.tp_new = iter_new;
+  pytype.tp_dealloc = (destructor)iter_dealloc;
+  pytype.tp_init = (initproc)iter_init;
+  pytype.tp_repr = (unaryfunc)iter_repr;
+  pytype.tp_str = (unaryfunc)iter_str;
   static PyMethodDef methods[] = {
     {"First", (PyCFunction)iter_First, METH_NOARGS,
      "Initializes the iterator to indicate the first record."},
@@ -3317,10 +3334,10 @@ static bool DefineIterator() {
      "Gets the current record and moves the iterator to the next record, as strings."},
     {nullptr, nullptr, 0, nullptr}
   };
-  type_iter.tp_methods = methods;
-  type_iter.tp_iternext = (iternextfunc)iter_iternext;
-  if (PyType_Ready(&type_iter) != 0) return false;
-  cls_iter = (PyObject*)&type_iter;
+  pytype.tp_methods = methods;
+  pytype.tp_iternext = (iternextfunc)iter_iternext;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_iter = (PyObject*)&pytype;
   Py_INCREF(cls_iter);
   if (PyModule_AddObject(mod_tkrzw, "Iterator", cls_iter) != 0) return false;
   return true;
@@ -3910,19 +3927,19 @@ static PyObject* asyncdbm_Search(PyAsyncDBM* self, PyObject* pyargs) {
 
 // Defines the AsyncDBM class.
 static bool DefineAsyncDBM() {
-  static PyTypeObject type_asyncdbm = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_asyncdbm + zoff, 0, sizeof(type_asyncdbm) - zoff);
-  type_asyncdbm.tp_name = "tkrzw.AsyncDBM";
-  type_asyncdbm.tp_basicsize = sizeof(PyAsyncDBM);
-  type_asyncdbm.tp_itemsize = 0;
-  type_asyncdbm.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_asyncdbm.tp_doc = "Polymorphic database manager.";
-  type_asyncdbm.tp_new = asyncdbm_new;
-  type_asyncdbm.tp_dealloc = (destructor)asyncdbm_dealloc;
-  type_asyncdbm.tp_init = (initproc)asyncdbm_init;
-  type_asyncdbm.tp_repr = (unaryfunc)asyncdbm_repr;
-  type_asyncdbm.tp_str = (unaryfunc)asyncdbm_str;
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.AsyncDBM";
+  pytype.tp_basicsize = sizeof(PyAsyncDBM);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Polymorphic database manager.";
+  pytype.tp_new = asyncdbm_new;
+  pytype.tp_dealloc = (destructor)asyncdbm_dealloc;
+  pytype.tp_init = (initproc)asyncdbm_init;
+  pytype.tp_repr = (unaryfunc)asyncdbm_repr;
+  pytype.tp_str = (unaryfunc)asyncdbm_str;
   static PyMethodDef methods[] = {
     {"Destruct", (PyCFunction)asyncdbm_Destruct, METH_NOARGS,
      "Destructs the asynchronous database adapter."},
@@ -3978,9 +3995,9 @@ static bool DefineAsyncDBM() {
      "Searches the database and get keys which match a pattern."},
     {nullptr, nullptr, 0, nullptr},
   };
-  type_asyncdbm.tp_methods = methods;
-  if (PyType_Ready(&type_asyncdbm) != 0) return false;
-  cls_asyncdbm = (PyObject*)&type_asyncdbm;
+  pytype.tp_methods = methods;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_asyncdbm = (PyObject*)&pytype;
   Py_INCREF(cls_asyncdbm);
   if (PyModule_AddObject(mod_tkrzw, "AsyncDBM", cls_asyncdbm) != 0) return false;
   return true;
@@ -4340,19 +4357,19 @@ static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
 
 // Defines the File class.
 static bool DefineFile() {
-  static PyTypeObject type_file = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
   const size_t zoff = offsetof(PyTypeObject, tp_name);
-  std::memset((char*)&type_file + zoff, 0, sizeof(type_file) - zoff);
-  type_file.tp_name = "tkrzw.File";
-  type_file.tp_basicsize = sizeof(PyFile);
-  type_file.tp_itemsize = 0;
-  type_file.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
-  type_file.tp_doc = "Generic file implemenation.";
-  type_file.tp_new = file_new;
-  type_file.tp_dealloc = (destructor)file_dealloc;
-  type_file.tp_init = (initproc)file_init;
-  type_file.tp_repr = (unaryfunc)file_repr;
-  type_file.tp_str = (unaryfunc)file_str;
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.File";
+  pytype.tp_basicsize = sizeof(PyFile);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Generic file implemenation.";
+  pytype.tp_new = file_new;
+  pytype.tp_dealloc = (destructor)file_dealloc;
+  pytype.tp_init = (initproc)file_init;
+  pytype.tp_repr = (unaryfunc)file_repr;
+  pytype.tp_str = (unaryfunc)file_str;
   static PyMethodDef methods[] = {
     {"Open", (PyCFunction)file_Open, METH_VARARGS | METH_KEYWORDS,
      "Opens a text file."},
@@ -4378,11 +4395,700 @@ static bool DefineFile() {
      "Searches the text file and get lines which match a pattern."},
     {nullptr, nullptr, 0, nullptr}
   };
-  type_file.tp_methods = methods;
-  if (PyType_Ready(&type_file) != 0) return false;
-  cls_file = (PyObject*)&type_file;
+  pytype.tp_methods = methods;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_file = (PyObject*)&pytype;
   Py_INCREF(cls_file);
   if (PyModule_AddObject(mod_tkrzw, "File", cls_file) != 0) return false;
+  return true;
+}
+
+// Implementation of Index.new.
+static PyObject* index_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
+  PyIndex* self = (PyIndex*)pytype->tp_alloc(pytype, 0);
+  if (!self) return nullptr;
+  self->index = nullptr;
+  self->concurrent = false;
+  return (PyObject*)self;
+}
+
+// Implementation of Index#dealloc.
+static void index_dealloc(PyIndex* self) {
+  delete self->index;
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+// Implementation of Index#__init__.
+static int index_init(PyIndex* self, PyObject* pyargs, PyObject* pykwds) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 0) {
+    ThrowInvalidArguments("too many arguments");
+    return -1;
+  }
+  return 0;
+}
+
+// Implementation of Index#__repr__.
+static PyObject* index_repr(PyIndex* self) {
+  std::string path = "-";
+  int64_t num_records = -1;
+  if (self->index != nullptr) {
+    NativeLock lock(self->concurrent);
+    path = self->index->GetFilePath();
+    num_records = self->index->Count();
+  }
+  const std::string& str = tkrzw::StrCat(
+      "<tkrzw.Index: path=", tkrzw::StrEscapeC(path, true), " num_records=", num_records, ">");
+  return CreatePyString(str);
+}
+
+// Implementation of Index#__str__.
+static PyObject* index_str(PyIndex* self) {
+  std::string path = "-";
+  int64_t num_records = -1;
+  if (self->index != nullptr) {
+    NativeLock lock(self->concurrent);
+    path = self->index->GetFilePath();
+    num_records = self->index->Count();
+  }
+  const std::string& str = tkrzw::StrCat(
+      "path=", tkrzw::StrEscapeC(path, true), " num_records=", num_records);
+  return CreatePyString(str);
+}
+
+// Implementation of Index#Open.
+static PyObject* index_Open(PyIndex* self, PyObject* pyargs, PyObject* pykwds) {
+  if (self->index != nullptr) {
+    ThrowInvalidArguments("opened index");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pypath = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pywritable = PyTuple_GET_ITEM(pyargs, 1);
+  SoftString path(pypath);
+  const bool writable = PyObject_IsTrue(pywritable);
+  bool concurrent = false;
+  int32_t open_options = 0;
+  std::map<std::string, std::string> params;
+  if (pykwds != nullptr) {
+    params = MapKeywords(pykwds);
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "concurrent", "false"))) {
+      concurrent = true;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "truncate", "false"))) {
+      open_options |= tkrzw::File::OPEN_TRUNCATE;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_create", "false"))) {
+      open_options |= tkrzw::File::OPEN_NO_CREATE;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_wait", "false"))) {
+      open_options |= tkrzw::File::OPEN_NO_WAIT;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "no_lock", "false"))) {
+      open_options |= tkrzw::File::OPEN_NO_LOCK;
+    }
+    if (tkrzw::StrToBool(tkrzw::SearchMap(params, "sync_hard", "false"))) {
+      open_options |= tkrzw::File::OPEN_SYNC_HARD;
+    }
+    params.erase("concurrent");
+    params.erase("truncate");
+    params.erase("no_create");
+    params.erase("no_wait");
+    params.erase("no_lock");
+    params.erase("sync_hard");
+  }
+  self->index = new tkrzw::PolyIndex();
+  self->concurrent = concurrent;
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->index->Open(std::string(path.Get()), writable, open_options, params);
+  }
+  if (status != tkrzw::Status::SUCCESS) {
+    delete self->index;
+    self->index = nullptr;
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
+// Implementation of Index#Close.
+static PyObject* index_Close(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->index->Close();
+  }
+  delete self->index;
+  self->index = nullptr;
+  return CreatePyTkStatusMove(std::move(status));
+}
+
+// Implementation of Index#GetValues.
+static PyObject* index_GetValues(PyIndex* self, PyObject* pyargs) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 2) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  int32_t capacity = 0;
+  if (argc > 1) {
+    capacity = PyObjToInt(PyTuple_GET_ITEM(pyargs, 1));
+  }
+  std::vector<std::string> values;
+  {
+    NativeLock lock(self->concurrent);
+    values = self->index->GetValues(key.Get(), capacity);
+  }
+  PyObject* pyrv = PyList_New(values.size());
+  for (size_t i = 0; i < values.size(); i++) {
+    PyList_SET_ITEM(pyrv, i, CreatePyBytes(values[i]));
+  }
+  return pyrv;
+}
+
+// Implementation of Index#GetValuesStr.
+static PyObject* index_GetValuesStr(PyIndex* self, PyObject* pyargs) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 2) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  int32_t capacity = 0;
+  if (argc > 1) {
+    capacity = PyObjToInt(PyTuple_GET_ITEM(pyargs, 1));
+  }
+  std::vector<std::string> values;
+  {
+    NativeLock lock(self->concurrent);
+    values = self->index->GetValues(key.Get(), capacity);
+  }
+  PyObject* pyrv = PyList_New(values.size());
+  for (size_t i = 0; i < values.size(); i++) {
+    PyList_SET_ITEM(pyrv, i, CreatePyString(values[i]));
+  }
+  return pyrv;
+}
+
+// Implementation of Index#Add.
+static PyObject* index_Add(PyIndex* self, PyObject* pyargs) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 1);
+  SoftString key(pykey);
+  SoftString value(pyvalue);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->index->Add(key.Get(), value.Get());
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
+// Implementation of Index#Remove.
+static PyObject* index_Remove(PyIndex* self, PyObject* pyargs) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 2) {
+    ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 1);
+  SoftString key(pykey);
+  SoftString value(pyvalue);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->index->Remove(key.Get(), value.Get());
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
+// Implementation of Index#Count.
+static PyObject* index_Count(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  int64_t count = -1;
+  {
+    NativeLock lock(self->concurrent);
+    count = self->index->Count();
+  }
+  return PyLong_FromLongLong(count);
+}
+
+// Implementation of Index#GetFilePath.
+static PyObject* index_GetFilePath(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  std::string path;
+  {
+    NativeLock lock(self->concurrent);
+    path = self->index->GetFilePath();
+  }
+  return CreatePyString(path);
+}
+
+// Implementation of Index#Clear.
+static PyObject* index_Clear(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->index->Clear();
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
+// Implementation of Index#Rebuild.
+static PyObject* index_Rebuild(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->index->Rebuild();
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
+// Implementation of Index#Synchronize.
+static PyObject* index_Synchronize(PyIndex* self, PyObject* pyargs) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pyhard = PyTuple_GET_ITEM(pyargs, 0);
+  const bool hard = PyObject_IsTrue(pyhard);
+  tkrzw::Status status(tkrzw::Status::SUCCESS);
+  {
+    NativeLock lock(self->concurrent);
+    status = self->index->Synchronize(hard);
+  }
+  return CreatePyTkStatusMove(std::move(status));
+}
+
+// Implementation of Index#IsOpen.
+static PyObject* index_IsOpen(PyIndex* self) {
+  if (self->index == nullptr) {
+    Py_RETURN_FALSE;
+  }
+  Py_RETURN_TRUE;  
+}
+
+// Implementation of Index#IsWritable.
+static PyObject* index_IsWritable(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  const bool writable = self->index->IsWritable();
+  if (writable) {
+    Py_RETURN_TRUE;
+  }
+  Py_RETURN_FALSE;
+}
+
+// Implementation of Index#MakeIterator.
+static PyObject* index_MakeIterator(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  PyTypeObject* pyitertype = (PyTypeObject*)cls_indexiter;
+  PyIndexIterator* pyiter = (PyIndexIterator*)pyitertype->tp_alloc(pyitertype, 0);
+  if (!pyiter) return nullptr;
+  {
+    NativeLock lock(self->concurrent);
+    pyiter->iter = self->index->MakeIterator().release();
+  }
+  pyiter->concurrent = self->concurrent;
+  return (PyObject*)pyiter;
+}
+
+// Implementation of Index#__len__.
+static Py_ssize_t index_len(PyIndex* self) {
+  if (self->index == nullptr) {
+    return 0;
+  }
+  int64_t count = -1;
+  {
+    NativeLock lock(self->concurrent);
+    count = self->index->Count();
+  }
+  return std::max<int64_t>(count, 0);
+}
+
+// Implementation of Index#__contains__.
+static int index_contains(PyIndex* self, PyObject* pyrec) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return -1;
+  }
+  if (!PySequence_Check(pyrec)) {
+    ThrowInvalidArguments("not sequence argument");
+    return -1;
+  }
+  if (PySequence_Size(pyrec) != 2) {
+    ThrowInvalidArguments("not pair argument");
+    return -1;
+  }
+  PyObject* pykey = PySequence_GetItem(pyrec, 0);
+  PyObject* pyvalue = PySequence_GetItem(pyrec, 1);
+  SoftString key(pykey);
+  SoftString value(pyvalue);
+  bool check = false;
+  {
+    NativeLock lock(self->concurrent);
+    check = self->index->Check(key.Get(), value.Get());
+  }
+  Py_DECREF(pykey);
+  Py_DECREF(pyvalue);  
+  return check ? 1 : 0;
+}
+
+// Implementation of Index#__iter__.
+static PyObject* index_iter(PyIndex* self) {
+  if (self->index == nullptr) {
+    ThrowInvalidArguments("not opened index");
+    return nullptr;
+  }
+  PyTypeObject* pyitertype = (PyTypeObject*)cls_indexiter;
+  PyIndexIterator* pyiter = (PyIndexIterator*)pyitertype->tp_alloc(pyitertype, 0);
+  if (!pyiter) return nullptr;
+  {
+    NativeLock lock(self->concurrent);
+    pyiter->iter = self->index->MakeIterator().release();
+    pyiter->concurrent = self->concurrent;
+    pyiter->iter->First();
+  }
+  return (PyObject*)pyiter;
+}
+
+// Defines the Index class.
+static bool DefineIndex() {
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  const size_t zoff = offsetof(PyTypeObject, tp_name);
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.Index";
+  pytype.tp_basicsize = sizeof(PyIndex);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Secondary index.";
+  pytype.tp_new = index_new;
+  pytype.tp_dealloc = (destructor)index_dealloc;
+  pytype.tp_init = (initproc)index_init;
+  pytype.tp_repr = (unaryfunc)index_repr;
+  pytype.tp_str = (unaryfunc)index_str;
+  static PyMethodDef methods[] = {
+    {"Open", (PyCFunction)index_Open, METH_VARARGS | METH_KEYWORDS,
+     "Opens an index file."},
+    {"Close", (PyCFunction)index_Close, METH_NOARGS,
+     "Closes the index file."},
+    {"GetValues", (PyCFunction)index_GetValues, METH_VARARGS,
+     "Gets all values of records of a key."},
+    {"GetValuesStr", (PyCFunction)index_GetValuesStr, METH_VARARGS,
+     "Gets all values of records of a key, as strings."},
+    {"Add", (PyCFunction)index_Add, METH_VARARGS,
+     "Adds a record."},
+    {"Remove", (PyCFunction)index_Remove, METH_VARARGS,
+     "Removes a record."},
+    {"Count", (PyCFunction)index_Count, METH_NOARGS,
+     "Gets the number of records."},
+    {"GetFilePath", (PyCFunction)index_GetFilePath, METH_NOARGS,
+     "Gets the path of the index file."},
+    {"Clear", (PyCFunction)index_Clear, METH_NOARGS,
+     "Removes all records."},
+    {"Rebuild", (PyCFunction)index_Rebuild, METH_NOARGS,
+     "Rebuilds the entire index."},
+    {"Synchronize", (PyCFunction)index_Synchronize, METH_VARARGS,
+     "Synchronizes the content of the index to the file system."},
+    {"IsOpen", (PyCFunction)index_IsOpen, METH_NOARGS,
+     "Checks whether the index is open."},
+    {"IsWritable", (PyCFunction)index_IsWritable, METH_NOARGS,
+     "Checks whether the index is writable."},
+    {"MakeIterator", (PyCFunction)index_MakeIterator, METH_NOARGS,
+     "Makes an iterator for each record."},
+    {nullptr, nullptr, 0, nullptr},
+  };
+  pytype.tp_methods = methods;
+  static PyMappingMethods map_methods;
+  std::memset(&map_methods, 0, sizeof(map_methods));
+  map_methods.mp_length = (lenfunc)index_len;
+  pytype.tp_as_mapping = &map_methods;
+  static PySequenceMethods seq_methods;
+  std::memset(&seq_methods, 0, sizeof(seq_methods));
+  seq_methods.sq_contains = (objobjproc)index_contains;
+  pytype.tp_as_sequence = &seq_methods;
+  pytype.tp_iter = (getiterfunc)index_iter;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_index = (PyObject*)&pytype;
+  Py_INCREF(cls_index);
+  if (PyModule_AddObject(mod_tkrzw, "Index", cls_index) != 0) return false;
+  return true;
+}
+
+// Implementation of IndexIterator.new.
+static PyObject* indexiter_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
+  PyIndexIterator* self = (PyIndexIterator*)pytype->tp_alloc(pytype, 0);
+  if (!self) return nullptr;
+  self->iter = nullptr;
+  self->concurrent = false;
+  return (PyObject*)self;
+}
+
+// Implementation of IndexIterator#dealloc.
+static void indexiter_dealloc(PyIndexIterator* self) {
+  delete self->iter;
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+// Implementation of IndexIterator#__init__.
+static int indexiter_init(PyIndexIterator* self, PyObject* pyargs, PyObject* pykwds) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return -1;
+  }
+  PyObject* pyindex_obj = PyTuple_GET_ITEM(pyargs, 0);
+  if (!PyObject_IsInstance(pyindex_obj, cls_index)) {
+    ThrowInvalidArguments("the argument is not an Index");
+    return -1;
+  }
+  PyIndex* pyindex = (PyIndex*)pyindex_obj;
+  {
+    NativeLock lock(pyindex->concurrent);
+    self->iter = pyindex->index->MakeIterator().release();
+  }
+  self->concurrent = pyindex->concurrent;
+  return 0;
+}
+
+// Implementation of IndexIterator#__repr__.
+static PyObject* indexiter_repr(PyIndexIterator* self) {
+  std::string key;
+  {
+    NativeLock lock(self->concurrent);
+    if (!self->iter->Get(&key)) {
+      key = "(unlocated)";
+    }
+  }
+  return CreatePyString(tkrzw::StrCat(
+      "<tkrzw.IndexIterator: key=", tkrzw::StrEscapeC(key, true), ">"));
+}
+
+// Implementation of IndexIterator#__str__.
+static PyObject* indexiter_str(PyIndexIterator* self) {
+  std::string key;
+  {
+    NativeLock lock(self->concurrent);
+    if (!self->iter->Get(&key)) {
+      key = "(unlocated)";
+    }
+  }
+  return CreatePyString(tkrzw::StrEscapeC(key, true));
+}
+
+// Implementation of IndexIterator#First.
+static PyObject* indexiter_First(PyIndexIterator* self) {
+  {
+    NativeLock lock(self->concurrent);
+    self->iter->First();
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of IndexIterator#Last.
+static PyObject* indexiter_Last(PyIndexIterator* self) {
+  {
+    NativeLock lock(self->concurrent);
+    self->iter->Last();
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of IndexIterator#Jump.
+static PyObject* indexiter_Jump(PyIndexIterator* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc < 1 || argc > 2) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pykey = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString key(pykey);
+  if (argc > 1) {
+    PyObject* pyvalue = PyTuple_GET_ITEM(pyargs, 1);
+    SoftString value(pyvalue);
+    NativeLock lock(self->concurrent);
+    self->iter->Jump(key.Get(), value.Get());
+  } else {
+    NativeLock lock(self->concurrent);
+    self->iter->Jump(key.Get());
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of IndexIterator#Next.
+static PyObject* indexiter_Next(PyIndexIterator* self) {
+  {
+    NativeLock lock(self->concurrent);
+    self->iter->Next();
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of IndexIterator#Previous.
+static PyObject* indexiter_Previous(PyIndexIterator* self) {
+  {
+    NativeLock lock(self->concurrent);
+    self->iter->Previous();
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of IndexIterator#Get.
+static PyObject* indexiter_Get(PyIndexIterator* self) {
+  std::string key, value;
+  bool ok = false;
+  {
+    NativeLock lock(self->concurrent);
+    ok = self->iter->Get(&key, &value);
+  }
+  if (ok) {
+    PyObject* pykey = CreatePyBytes(key);
+    PyObject* pyvalue = CreatePyBytes(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of IndexIterator#GetStr.
+static PyObject* indexiter_GetStr(PyIndexIterator* self) {
+  std::string key, value;
+  bool ok = false;
+  {
+    NativeLock lock(self->concurrent);
+    ok = self->iter->Get(&key, &value);
+  }
+  if (ok) {
+    PyObject* pykey = CreatePyString(key);
+    PyObject* pyvalue = CreatePyString(value);
+    PyObject * pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pyvalue);
+    Py_DECREF(pykey);
+    return pyrv;
+  }
+  Py_RETURN_NONE;
+}
+
+// Implementation of IndexIterator#__next__.
+static PyObject* indexiter_iternext(PyIndexIterator* self) {
+  std::string key, value;
+  bool ok = false;
+  {
+    NativeLock lock(self->concurrent);
+    ok = self->iter->Get(&key, &value);
+  }
+  PyObject* pyrv = nullptr;
+  if (ok) {
+    PyObject* pykey = CreatePyBytes(key);
+    PyObject* pyvalue = CreatePyBytes(value);
+    pyrv = PyTuple_Pack(2, pykey, pyvalue);
+    Py_DECREF(pykey);
+    Py_DECREF(pyvalue);
+    self->iter->Next();
+  } else {
+    PyErr_SetString(PyExc_StopIteration, "end of iteration");
+    pyrv = nullptr;
+  }
+  return pyrv;
+}
+
+// Defines the IndexIterator class.
+static bool DefineIndexIterator() {
+  static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
+  const size_t zoff = offsetof(PyTypeObject, tp_name);
+  std::memset((char*)&pytype + zoff, 0, sizeof(pytype) - zoff);
+  pytype.tp_name = "tkrzw.IndexIterator";
+  pytype.tp_basicsize = sizeof(PyIndexIterator);
+  pytype.tp_itemsize = 0;
+  pytype.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
+  pytype.tp_doc = "Iterator for each record of the secondary index.";
+  pytype.tp_new = indexiter_new;
+  pytype.tp_dealloc = (destructor)indexiter_dealloc;
+  pytype.tp_init = (initproc)indexiter_init;
+  pytype.tp_repr = (unaryfunc)indexiter_repr;
+  pytype.tp_str = (unaryfunc)indexiter_str;
+  static PyMethodDef methods[] = {
+    {"First", (PyCFunction)indexiter_First, METH_NOARGS,
+     "Initializes the iterator to indicate the first record."},
+    {"Last", (PyCFunction)indexiter_Last, METH_NOARGS,
+     "Initializes the iterator to indicate the last record."},
+    {"Jump", (PyCFunction)indexiter_Jump, METH_VARARGS,
+     "Initializes the iterator to indicate a specific range."},
+    {"Next", (PyCFunction)indexiter_Next, METH_NOARGS,
+     "Moves the iterator to the next record."},
+    {"Previous", (PyCFunction)indexiter_Previous, METH_NOARGS,
+     "Moves the iterator to the previous record."},
+    {"Get", (PyCFunction)indexiter_Get, METH_NOARGS,
+     "Gets the key and the value of the current record of the iterator."},
+    {"GetStr", (PyCFunction)indexiter_GetStr, METH_NOARGS,
+     "Gets the key and the value of the current record of the iterator, as strings."},
+    {nullptr, nullptr, 0, nullptr}
+  };
+  pytype.tp_methods = methods;
+  pytype.tp_iternext = (iternextfunc)indexiter_iternext;
+  if (PyType_Ready(&pytype) != 0) return false;
+  cls_indexiter = (PyObject*)&pytype;
+  Py_INCREF(cls_indexiter);
+  if (PyModule_AddObject(mod_tkrzw, "IndexIterator", cls_indexiter) != 0) return false;
   return true;
 }
 
@@ -4397,6 +5103,8 @@ PyMODINIT_FUNC PyInit_tkrzw() {
   if (!DefineIterator()) return nullptr;
   if (!DefineAsyncDBM()) return nullptr;
   if (!DefineFile()) return nullptr;
+  if (!DefineIndex()) return nullptr;
+  if (!DefineIndexIterator()) return nullptr;
   return mod_tkrzw;
 }
 

@@ -1582,4 +1582,263 @@ class File:
     pass  # native code
 
 
+class Index:
+  """
+  Secondary index interface.
+
+  All operations except for open and close are thread-safe; Multiple threads can access the same index concurrently.  You can specify a data structure when you call the "Open" method.  Every opened index must be closed explicitly by the "Close" method to avoid data corruption.
+  This class implements the iterable protocol so an instance is usable with "for-in" loop.
+  """
+
+  def __repr__(self):
+    """
+    Returns a string representation of the object.
+
+    :return: The string representation of the object.
+    """
+    pass  # native code
+
+  def __str__(self):
+    """
+    Returns a string representation of the content.
+
+    :return: The string representation of the content.
+    """
+    pass  # native code
+
+  def __len__(self):
+    """
+    Gets the number of records, to enable the len operator.
+
+    :return: The number of records on success, or 0 on failure.
+    """
+    pass  # native code
+
+  def __contains__(self, record):
+    """
+    Checks if a record exists or not, to enable the in operator.
+
+    :param record: A tuple of the key and the value to check.
+    :return: True if the record exists, or False if not.  No exception is raised for missing records.
+    """
+    pass  # native code
+
+  def __iter__(self):
+    """
+    Makes an iterator and initialize it, to comply to the iterator protocol.
+
+    :return: The iterator for each record.
+    """
+    pass  # native code
+  
+  def Open(self, path, writable, **params):
+    """
+    Opens an index file.
+
+    :param path: A path of the file.
+    :param writable: If true, the file is writable.  If false, it is read-only.
+    :param params: Optional keyword parameters.
+    :return: The result status.
+
+    If the path is empty, BabyDBM is used internally, which is equivalent to using the MemIndex class.  If the path ends with ".tkt", TreeDBM is used internally, which is equivalent to using the FileIndex class.  If the key comparator of the tuning parameter is not set, PairLexicalKeyComparator is set implicitly.  Other compatible key comparators are PairLexicalCaseKeyComparator, PairDecimalKeyComparator, PairHexadecimalKeyComparator, and PairRealNumberKeyComparator.  Other options can be specified as with DBM::Open.
+    """
+    pass  # native code
+
+  def Close(self):
+    """
+    Closes the index file.
+
+    :return: The result status.
+    """
+    pass  # native code
+
+  def GetValues(self, key, max=0):
+    """
+    Gets all values of records of a key.
+    :param key The key to look for.
+    :param max The maximum number of values to get.  0 means unlimited.
+    :return: A list of all values of the key.  An empty list is returned on failure.
+    """
+    pass  # native code
+
+  def GetValuesStr(self, key, max=0):
+    """
+    Gets all values of records of a key, as strings.
+    :param key The key to look for.
+    :param max The maximum number of values to get.  0 means unlimited.
+    :return: A list of all values of the key.  An empty list is returned on failure.
+    """
+    pass  # native code
+
+  def Add(self, key, value):
+    """
+    Adds a record.
+
+    :param key The key of the record.  This can be an arbitrary expression to search the index.
+    :param value The value of the record.  This should be a primary value of another database.
+    :return: The result status.
+    """
+    pass  # native code
+
+  def Remove(self, key, value):
+    """
+    Removes a record.
+
+    :param key The key of the record.
+    :param value The value of the record.
+    :return: The result status.
+    """
+    pass  # native code
+
+  def Count(self):
+    """
+    Gets the number of records.
+
+    :return: The number of records, or 0 on failure.
+    """
+    pass  # native code
+
+  def GetFilePath(self):
+    """
+    Gets the path of the index file.
+    :return: The file path of the index, or an empty string on failure.
+    """
+    pass  # native code
+
+  def Clear(self):
+    """
+    Removes all records.
+
+    :return: The result status.
+    """
+    pass  # native code
+
+  def Rebuild(self):
+    """
+    Rebuilds the entire index.
+
+    :return: The result status.
+    """
+    pass  # native code
+
+  def Synchronize(self, hard):
+    """
+    Synchronizes the content of the index to the file system.
+
+    :param hard True to do physical synchronization with the hardware or false to do only logical synchronization with the file system.
+    :return: The result status.
+    """
+    pass  # native code
+
+  def IsOpen(self):
+    """
+    Checks whether the index is open.
+
+    :return: True if the index is open, or false if not.
+    """
+    pass  # native code
+
+  def IsWritable(self):
+    """
+    Checks whether the index is writable.
+
+    :return: True if the index is writable, or false if not.
+    """
+
+  def MakeIterator(self):
+    """
+    Makes an iterator for each record.
+
+    :return: The iterator for each record.
+    """
+    pass  # native code
+
+
+class IndexIterator:
+  """
+  Iterator for each record of the secondary index.
+  """
+
+  def __init__(self, index):
+    """
+    Initializes the iterator.
+
+    :param index: The index to scan.
+    """
+    pass  # native code
+
+  def __repr__(self):
+    """
+    Returns A string representation of the object.
+
+    :return: The string representation of the object.
+    """
+    pass  # native code
+
+  def __str__(self):
+    """
+    Returns A string representation of the content.
+
+    :return: The string representation of the content.
+    """
+    pass  # native code
+
+  def __next__(self):
+    """
+    Moves the iterator to the next record, to comply to the iterator protocol.
+
+    :return: A tuple of The key and the value of the current record.
+    """
+    pass  # native code
+
+  def First(self):
+    """
+    Initializes the iterator to indicate the first record.
+    """
+    pass  # native code
+
+  def Last(self):
+    """
+    Initializes the iterator to indicate the last record.
+    """
+    pass  # native code
+
+  def Jump(self, key, value=""):
+    """
+    Initializes the iterator to indicate a specific range.
+
+    :param key The key of the lower bound.
+    :param value The value of the lower bound.
+    """
+    pass  # native code
+
+  def Next(self):
+    """
+    Moves the iterator to the next record.
+    """
+    pass  # native code
+
+  def Previous(self):
+    """
+    Moves the iterator to the previous record.
+    """
+    pass  # native code
+
+  def Get(self):
+    """
+    Gets the key and the value of the current record of the iterator.
+
+    :return: A tuple of the bytes key and the bytes value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
+  def GetStr(self):
+    """
+    Gets the key and the value of the current record of the iterator, as strings.
+
+    :return: A tuple of the string key and the string value of the current record.  On failure, None is returned.
+    """
+    pass  # native code
+
+
 # END OF FILE
