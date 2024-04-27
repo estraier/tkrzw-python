@@ -13,6 +13,7 @@ Module and Classes
    tkrzw.Iterator
    tkrzw.AsyncDBM
    tkrzw.File
+   tkrzw.Index
 
 Introduction
 ============
@@ -261,6 +262,48 @@ The following code uses Process, ProcessMulti, and ProcessEach functions which t
 
  # Closes the database.
  dbm.Close()
+
+The following code is an example to use a secondary index, which is useful to organize records by non-primary keys.::
+
+ import tkrzw
+
+ # Opens the database.
+ index = tkrzw.Index()
+ index.Open("casket.tkt", True, truncate=True, num_buckets=100).OrDie()
+
+ # Adds records to the index.
+ # The key is a division name and the value is person name.
+ index.Add("general", "anne").OrDie()
+ index.Add("general", "matthew").OrDie()
+ index.Add("general", "marilla").OrDie()
+ index.Add("sales", "gilbert").OrDie()
+
+ # Anne moves to the sales division.
+ index.Remove("general", "anne").OrDie()
+ index.Add("sales", "anne").OrDie()
+
+ # Prints all members for each division.
+ for division in ["general", "sales"]:
+   print(division)
+   members = index.GetValuesStr(division)
+   for member in members:
+     print(" -- " + member)
+
+ # Prints every record by iterator.
+ iter = index.MakeIterator()
+ iter.First()
+ while True:
+   record = iter.GetStr()
+   if not record: break
+   print(record[0] + ": " + record[1])
+   iter.Next()
+
+ # Prints every record by the iterable protocol.
+ for key, value in index:
+   print(key.decode() + ": " + value.decode())
+
+ # Closes the index
+ index.Close().OrDie()
 
 Indices and tables
 ==================
