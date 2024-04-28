@@ -4007,7 +4007,7 @@ static bool DefineAsyncDBM() {
 static PyObject* file_new(PyTypeObject* pytype, PyObject* pyargs, PyObject* pykwds) {
   PyFile* self = (PyFile*)pytype->tp_alloc(pytype, 0);
   if (!self) return nullptr;
-  self->file = new tkrzw::PolyFile();
+  self->file = nullptr;
   self->concurrent = false;
   return (PyObject*)self;
 }
@@ -4030,6 +4030,9 @@ static int file_init(PyFile* self, PyObject* pyargs, PyObject* pykwds) {
 
 // Implementation of File#__repr__.
 static PyObject* file_repr(PyFile* self) {
+  if (self->file == nullptr) {
+    return CreatePyString("<tkrzw.File:(unopened)>");
+  }
   std::string class_name = "unknown";
   auto* in_file = self->file->GetInternalFile();
   if (in_file != nullptr) {
@@ -4056,6 +4059,9 @@ static PyObject* file_repr(PyFile* self) {
 
 // Implementation of File#__str__.
 static PyObject* file_str(PyFile* self) {
+  if (self->file == nullptr) {
+    return CreatePyString("(unopened)");
+  }
   std::string class_name = "unknown";
   auto* in_file = self->file->GetInternalFile();
   if (in_file != nullptr) {
@@ -4113,27 +4119,48 @@ static PyObject* file_Open(PyFile* self, PyObject* pyargs, PyObject* pykwds) {
     if (tkrzw::StrToBool(tkrzw::SearchMap(params, "sync_hard", "false"))) {
       open_options |= tkrzw::File::OPEN_SYNC_HARD;
     }
+    params.erase("concurrent");
+    params.erase("truncate");
+    params.erase("no_create");
+    params.erase("no_wait");
+    params.erase("no_lock");
+    params.erase("sync_hard");
   }
+  self->file = new tkrzw::PolyFile();
   self->concurrent = concurrent;
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
     status = self->file->OpenAdvanced(std::string(path.Get()), writable, open_options, params);
   }
+  if (status != tkrzw::Status::SUCCESS) {
+    delete self->file;
+    self->file = nullptr;
+  }
   return CreatePyTkStatusMove(std::move(status));
 }
 
 // Implementation of File#Close
 static PyObject* file_Close(PyFile* self) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   tkrzw::Status status(tkrzw::Status::SUCCESS);
   {
     NativeLock lock(self->concurrent);
     status = self->file->Close();
   }
+  delete self->file;
+  self->file = nullptr;
   return CreatePyTkStatusMove(std::move(status));
 }
 
 static PyObject* file_Read(PyFile* self, PyObject* pyargs) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc < 2 || argc > 3) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
@@ -4170,6 +4197,10 @@ static PyObject* file_Read(PyFile* self, PyObject* pyargs) {
 }
 
 static PyObject* file_ReadStr(PyFile* self, PyObject* pyargs) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc < 2 || argc > 3) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
@@ -4206,6 +4237,10 @@ static PyObject* file_ReadStr(PyFile* self, PyObject* pyargs) {
 }
 
 static PyObject* file_Write(PyFile* self, PyObject* pyargs) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc != 2) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
@@ -4223,6 +4258,10 @@ static PyObject* file_Write(PyFile* self, PyObject* pyargs) {
 }
 
 static PyObject* file_Append(PyFile* self, PyObject* pyargs) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc < 1 || argc > 2) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
@@ -4275,6 +4314,10 @@ static PyObject* file_Truncate(PyFile* self, PyObject* pyargs) {
 }
 
 static PyObject* file_Synchronize(PyFile* self, PyObject* pyargs) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc < 1 || argc > 3) {
     ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
@@ -4299,6 +4342,10 @@ static PyObject* file_Synchronize(PyFile* self, PyObject* pyargs) {
 }
 
 static PyObject* file_GetSize(PyFile* self) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   int64_t size = -1;
   {
     NativeLock lock(self->concurrent);
@@ -4325,6 +4372,10 @@ static PyObject* file_GetPath(PyFile* self) {
 
 // Implementation of File#Search.
 static PyObject* file_Search(PyFile* self, PyObject* pyargs) {
+  if (self->file == nullptr) {
+    ThrowInvalidArguments("not opened file");
+    return nullptr;
+  }
   const int32_t argc = PyTuple_GET_SIZE(pyargs);
   if (argc < 2 || argc > 3) {
     ThrowInvalidArguments(argc < 2 ? "too few arguments" : "too many arguments");
