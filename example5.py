@@ -15,7 +15,7 @@
 
 import tkrzw
 
-# Opens the database.
+# Opens the index.
 index = tkrzw.Index()
 index.Open("casket.tkt", True, truncate=True, num_buckets=100).OrDie()
 
