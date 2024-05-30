@@ -556,6 +556,58 @@ static PyObject* utility_EditDistanceLev(PyObject* self, PyObject* pyargs) {
   return PyLong_FromLong(tkrzw::EditDistanceLev<std::vector<uint32_t>>(ucsa, ucsb));
 }
 
+// Implementation of Utility.SerializeInt.
+static PyObject* utility_SerializeInt(PyObject* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pynum = PyTuple_GET_ITEM(pyargs, 0);
+  const int64_t num = PyObjToInt(pynum);
+  const std::string str = tkrzw::IntToStrBigEndian(num, sizeof(int64_t));
+  return CreatePyBytes(str);
+}
+
+// Implementation of Utility.DeserializeInt.
+static PyObject* utility_DeserializeInt(PyObject* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pydata = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString data(pydata);
+  const int64_t num = tkrzw::StrToIntBigEndian(data.Get());
+  return PyLong_FromLongLong(num);
+}
+
+// Implementation of Utility.SerializeFloat.
+static PyObject* utility_SerializeFloat(PyObject* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pynum = PyTuple_GET_ITEM(pyargs, 0);
+  const double num = PyObjToDouble(pynum);
+  const std::string str = tkrzw::FloatToStrBigEndian(num, sizeof(double));
+  return CreatePyBytes(str);
+}
+
+// Implementation of Utility.DeserializeFloat.
+static PyObject* utility_DeserializeFloat(PyObject* self, PyObject* pyargs) {
+  const int32_t argc = PyTuple_GET_SIZE(pyargs);
+  if (argc != 1) {
+    ThrowInvalidArguments(argc < 1 ? "too few arguments" : "too many arguments");
+    return nullptr;
+  }
+  PyObject* pydata = PyTuple_GET_ITEM(pyargs, 0);
+  SoftString data(pydata);
+  const double num = tkrzw::StrToFloatBigEndian(data.Get());
+  return PyFloat_FromDouble(num);
+}
+
 // Defines the Utility class.
 static bool DefineUtility() {
   static PyTypeObject pytype = {PyVarObject_HEAD_INIT(nullptr, 0)};
@@ -577,6 +629,14 @@ static bool DefineUtility() {
      "Secondary hash function for sharding."},
     {"EditDistanceLev", (PyCFunction)utility_EditDistanceLev, METH_CLASS | METH_VARARGS,
      "Gets the Levenshtein edit distance of two Unicode strings."},
+    {"SerializeInt", (PyCFunction)utility_SerializeInt, METH_CLASS | METH_VARARGS,
+     "Serializes an integer into a big-endian binary sequence."},
+    {"DeserializeInt", (PyCFunction)utility_DeserializeInt, METH_CLASS | METH_VARARGS,
+     "Deserializes a big-endian binary sequence into an integer."},
+    {"SerializeFloat", (PyCFunction)utility_SerializeFloat, METH_CLASS | METH_VARARGS,
+     "Serializes a floating-point number into a big-endian binary sequence."},
+    {"DeserializeFloat", (PyCFunction)utility_DeserializeFloat, METH_CLASS | METH_VARARGS,
+     "Deserializes a big-endian binary sequence into a floating-point number."},
     {nullptr, nullptr, 0, nullptr},
   };
   pytype.tp_methods = methods;

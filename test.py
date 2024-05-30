@@ -65,6 +65,12 @@ class TestTkrzw(unittest.TestCase):
     self.assertEqual(0, Utility.EditDistanceLev("", ""))
     self.assertEqual(1, Utility.EditDistanceLev("ac", "abc"))
     self.assertEqual(1, Utility.EditDistanceLev("あいう", "あう"))
+    int_seq = Utility.SerializeInt(-123456)
+    self.assertEqual(8, len(int_seq))
+    self.assertEqual(-123456, Utility.DeserializeInt(int_seq))
+    float_seq = Utility.SerializeFloat(-123.456)
+    self.assertEqual(8, len(float_seq))
+    self.assertEqual(-123.456, Utility.DeserializeFloat(float_seq))
 
   # Status tests.
   def testStatus(self):
