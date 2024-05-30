@@ -125,7 +125,7 @@ class Utility:
     Deserializes a big-endian binary sequence into a floating-point number.
 
     :param data: a binary sequence.
-    :return: The result integer.
+    :return: The result floating-point number.
     """
     pass  # native code
 
