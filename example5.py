@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 #--------------------------------------------------------------------------------------------------
-# Example for secondary index
+# Example for process methods
 #
 # Copyright 2020 Google LLC
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
@@ -14,43 +14,72 @@
 #--------------------------------------------------------------------------------------------------
 
 import tkrzw
+import re
 
-# Opens the index.
-index = tkrzw.Index()
-index.Open("casket.tkt", True, truncate=True, num_buckets=100).OrDie()
+# Opens the database.
+dbm = tkrzw.DBM()
+dbm.Open("casket.tkh", True, truncate=True, num_buckets=1000)
 
-# Adds records to the index.
-# The key is a division name and the value is person name.
-index.Add("general", "anne").OrDie()
-index.Add("general", "matthew").OrDie()
-index.Add("general", "marilla").OrDie()
-index.Add("sales", "gilbert").OrDie()
+# Sets records with lambda functions.
+dbm.Process("doc-1", lambda key, value: "Tokyo is the capital city of Japan.", True)
+dbm.Process("doc-2", lambda key, value: "Is she living in Tokyo, Japan?", True)
+dbm.Process("doc-3", lambda key, value: "She must leave Tokyo!", True)
 
-# Anne moves to the sales division.
-index.Remove("general", "anne").OrDie()
-index.Add("sales", "anne").OrDie()
+# Lowers record values.
+def Lower(key, value):
+    # If no matching record, None is given as the value.
+    if not value: return None
+    # Sets the new value.
+    # Note that the key and the value are a "bytes" object.
+    return value.decode().lower()
+dbm.Process("doc-1", Lower, True)
+dbm.Process("doc-2", Lower, True)
+dbm.Process("non-existent", Lower, True)
 
-# Prints all members for each division.
-for division in ["general", "sales"]:
-  print(division)
-  members = index.GetValuesStr(division)
-  for member in members:
-    print(" -- " + member)
+# Does the same thing with a lambda function.
+dbm.Process("doc-3",
+            lambda key, value: value.decode().lower() if value else None,
+            True)
 
-# Prints every record by iterator.
-iter = index.MakeIterator()
-iter.First()
-while True:
-  record = iter.GetStr()
-  if not record: break
-  print(record[0] + ": " + record[1])
-  iter.Next()
+# If you don't update the record, set the third parameter to false.
+dbm.Process("doc-3", lambda key, value: print(key, value), False)
 
-# Prints every record by the iterable protocol.
-for key, value in index:
-  print(key.decode() + ": " + value.decode())
+# Adds multiple records at once.
+dbm.ProcessMulti([
+    ("doc-4", lambda key, value: "Tokyo Go!"),
+    ("doc-5", lambda key, value: "Japan Go!")], True)
 
-# Closes the index
-index.Close().OrDie()
+# Modifies multiple records at once.
+dbm.ProcessMulti([("doc-4", Lower), ("doc-5", Lower)], True)
+
+# Checks the whole content.
+# This uses an external iterator and is relavively slow.
+for key, value in dbm:
+    print(key.decode(), value.decode())
+    
+# Function for word counting.
+word_counts = {}
+def WordCounter(key, value):
+    if not key: return
+    value = value.decode()
+    words = [x for x in re.split(r"\W+", value) if x]
+    for word in words:
+        word_counts[word] = (word_counts.get(word) or 0) + 1
+
+# The second parameter should be false if the value is not updated.
+dbm.ProcessEach(WordCounter, False)
+print(word_counts)
+
+# Returning False by the callbacks removes the record.
+dbm.Process("doc-1", lambda key, value: False, True)
+print(dbm.Count())
+dbm.ProcessMulti([("doc-2", lambda key, value: False),
+                  ("doc-3", lambda key, value: False)], True)
+print(dbm.Count())
+dbm.ProcessEach(lambda key, value: False, True)
+print(dbm.Count())
+
+# Closes the database.
+dbm.Close()
 
 # END OF FILE

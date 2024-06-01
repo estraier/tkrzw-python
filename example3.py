@@ -1,7 +1,7 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
 #--------------------------------------------------------------------------------------------------
-# Example for the asynchronous API
+# Example for key comparators of the tree database
 #
 # Copyright 2020 Google LLC
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
@@ -13,43 +13,126 @@
 # and limitations under the License.
 #--------------------------------------------------------------------------------------------------
 
-import asyncio
 import tkrzw
 
-async def main():
-    # Prepares the database.
-    dbm = tkrzw.DBM()
-    dbm.Open("casket.tkh", True, truncate=True, num_buckets=100)
+# Opens a new database with the default key comparator (LexicalKeyComparator).
+dbm = tkrzw.DBM()
+open_params = {
+    "truncate": True,
+}
+status = dbm.Open("casket.tkt", True, **open_params).OrDie()
 
-    # Prepares the asynchronous adapter with 4 worker threads.
-    adbm = tkrzw.AsyncDBM(dbm, 4)
+# Sets records with the key being a big-endian binary of an integer.
+# e.g: "\x00\x00\x00\x00\x00\x00\x00\x31" -> "hop"
+dbm.Set(tkrzw.Utility.SerializeInt(1), "hop").OrDie()
+dbm.Set(tkrzw.Utility.SerializeInt(256), "step").OrDie()
+dbm.Set(tkrzw.Utility.SerializeInt(32), "jump").OrDie()
 
-    # Executes the Set method asynchronously.
-    future = adbm.Set("hello", "world")
-    # Does something in the foreground.
-    print("Setting a record")
-    # Checks the result after awaiting the Set operation.
-    # Calling Future#Get doesn't yield the coroutine ownership.
-    status = future.Get()
-    if status != tkrzw.Status.SUCCESS:
-        print("ERROR: " + str(status))
+# Gets records with the key being a decimal string of an integer.
+print(dbm.GetStr(tkrzw.Utility.SerializeInt(1)))
+print(dbm.GetStr(tkrzw.Utility.SerializeInt(256)))
+print(dbm.GetStr(tkrzw.Utility.SerializeInt(32)))
 
-    # Executes the Get method asynchronously.
-    future = adbm.GetStr("hello")
-    # Does something in the foreground.
-    print("Getting a record")
-    # Awaits the operation while yielding the coroutine ownership.
-    await future
-    status, value = future.Get()
-    if status == tkrzw.Status.SUCCESS:
-        print("VALUE: " + value)
+# Lists up all records, restoring keys into integers.
+iter = dbm.MakeIterator()
+iter.First()
+while True:
+    record = iter.Get()
+    if not record: break
+    print(str(tkrzw.Utility.DeserializeInt(record[0])) + ": " + record[1].decode())
+    iter.Next()
 
-    # Releases the asynchronous adapter.
-    adbm.Destruct()
+# Closes the database.
+dbm.Close().OrDie()
 
-    # Closes the database.
-    dbm.Close()
+# Opens a new database with the decimal integer comparator.
+open_params = {
+    "truncate": True,
+    "key_comparator": "Decimal",
+}
+status = dbm.Open("casket.tkt", True, **open_params).OrDie()
 
-asyncio.run(main())
+# Sets records with the key being a decimal string of an integer.
+# e.g: "1" -> "hop"
+dbm.Set("1", "hop").OrDie()
+dbm.Set("256", "step").OrDie()
+dbm.Set("32", "jump").OrDie()
+
+# Gets records with the key being a decimal string of an integer.
+print(dbm.GetStr("1"))
+print(dbm.GetStr("256"))
+print(dbm.GetStr("32"))
+
+# Lists up all records, restoring keys into integers.
+iter = dbm.MakeIterator()
+iter.First()
+while True:
+    record = iter.GetStr()
+    if not record: break
+    print("{:d}: {}".format(int(record[0]), record[1]))
+    iter.Next()
+
+# Closes the database.
+dbm.Close().OrDie()
+
+# Opens a new database with the decimal real number comparator.
+open_params = {
+    "truncate": True,
+    "key_comparator": "RealNumber",
+}
+status = dbm.Open("casket.tkt", True, **open_params).OrDie()
+
+# Sets records with the key being a decimal string of a real number.
+# e.g: "1.5" -> "hop"
+dbm.Set("1.5", "hop").OrDie()
+dbm.Set("256.5", "step").OrDie()
+dbm.Set("32.5", "jump").OrDie()
+
+# Gets records with the key being a decimal string of a real number.
+print(dbm.GetStr("1.5"))
+print(dbm.GetStr("256.5"))
+print(dbm.GetStr("32.5"))
+
+# Lists up all records, restoring keys into floating-point numbers.
+iter = dbm.MakeIterator()
+iter.First()
+while True:
+    record = iter.GetStr()
+    if not record: break
+    print("{:.3f}: {}".format(float(record[0]), record[1]))
+    iter.Next()
+
+# Closes the database.
+dbm.Close().OrDie()
+
+# Opens a new database with the big-endian floating-point numbers comparator.
+open_params = {
+    "truncate": True,
+    "key_comparator": "FloatBigEndian",
+}
+status = dbm.Open("casket.tkt", True, **open_params).OrDie()
+
+# Sets records with the key being a big-endian binary of a floating-point number.
+# e.g: "\x3F\xF8\x00\x00\x00\x00\x00\x00" -> "hop"
+dbm.Set(tkrzw.Utility.SerializeFloat(1.5), "hop").OrDie()
+dbm.Set(tkrzw.Utility.SerializeFloat(256.5), "step").OrDie()
+dbm.Set(tkrzw.Utility.SerializeFloat(32.5), "jump").OrDie()
+
+# Gets records with the key being a big-endian binary of a floating-point number.
+print(dbm.GetStr(tkrzw.Utility.SerializeFloat(1.5)))
+print(dbm.GetStr(tkrzw.Utility.SerializeFloat(256.5)))
+print(dbm.GetStr(tkrzw.Utility.SerializeFloat(32.5)))
+
+# Lists up all records, restoring keys into floating-point numbers.
+iter = dbm.MakeIterator()
+iter.First()
+while True:
+    record = iter.Get()
+    if not record: break
+    print("{:.3f}: {}".format(tkrzw.Utility.DeserializeFloat(record[0]), record[1].decode()))
+    iter.Next()
+
+# Closes the database.
+dbm.Close().OrDie()
 
 # END OF FILE
