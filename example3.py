@@ -28,7 +28,7 @@ dbm.Set(tkrzw.Utility.SerializeInt(1), "hop").OrDie()
 dbm.Set(tkrzw.Utility.SerializeInt(256), "step").OrDie()
 dbm.Set(tkrzw.Utility.SerializeInt(32), "jump").OrDie()
 
-# Gets records with the key being a decimal string of an integer.
+# Gets records with the key being a big-endian binary of an integer.
 print(dbm.GetStr(tkrzw.Utility.SerializeInt(1)))
 print(dbm.GetStr(tkrzw.Utility.SerializeInt(256)))
 print(dbm.GetStr(tkrzw.Utility.SerializeInt(32)))
