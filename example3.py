@@ -129,7 +129,7 @@ iter.First()
 while True:
     record = iter.Get()
     if not record: break
-    print("{:.3f}: {}".format(tkrzw.Utility.DeserializeInt(record[0]), record[1].decode()))
+    print("{:d}: {}".format(tkrzw.Utility.DeserializeInt(record[0]), record[1].decode()))
     iter.Next()
 
 # Closes the database.
