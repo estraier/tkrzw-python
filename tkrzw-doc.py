@@ -491,7 +491,7 @@ class DBM:
       - max_branches (int): The maximum number of branches each inner node can have.
       - max_cached_pages (int): The maximum number of cached pages.
       - page_update_mode (string): What to do when each page is updated: "PAGE_UPDATE_NONE" is to do no operation or "PAGE_UPDATE_WRITE" is to write immediately.
-      - key_comparator (string): The comparator of record keys: "LexicalKeyComparator" for the lexical order, "LexicalCaseKeyComparator" for the lexical order ignoring case, "DecimalKeyComparator" for the order of decimal integer numeric expressions, "HexadecimalKeyComparator" for the order of hexadecimal integer numeric expressions, "RealNumberKeyComparator" for the order of decimal real number expressions, and "FloatBigEndianKeyComparator" for the order of binary float-number expressions.
+      - key_comparator (string): The comparator of record keys: "LexicalKeyComparator" for the lexical order, "LexicalCaseKeyComparator" for the lexical order ignoring case, "DecimalKeyComparator" for the order of decimal integer numeric expressions, "HexadecimalKeyComparator" for the order of hexadecimal integer numeric expressions, "RealNumberKeyComparator" for the order of decimal real number expressions, "SignedBigEndianKeyComparator" for the order of binary signed integer expressions, and "FloatBigEndianKeyComparator" for the order of binary float-number expressions.
 
     For SkipDBM, these optional parameters are supported.
       - offset_width (int): The width to represent the offset of records.
@@ -1680,7 +1680,7 @@ class Index:
     :param params: Optional keyword parameters.
     :return: The result status.
 
-    If the path is empty, BabyDBM is used internally, which is equivalent to using the MemIndex class.  If the path ends with ".tkt", TreeDBM is used internally, which is equivalent to using the FileIndex class.  If the key comparator of the tuning parameter is not set, PairLexicalKeyComparator is set implicitly.  Other compatible key comparators are PairLexicalCaseKeyComparator, PairDecimalKeyComparator, PairHexadecimalKeyComparator, PairRealNumberKeyComparator, and PairFloatBigEndianKeyComparator.  Other options can be specified as with DBM::Open.
+    If the path is empty, BabyDBM is used internally, which is equivalent to using the MemIndex class.  If the path ends with ".tkt", TreeDBM is used internally, which is equivalent to using the FileIndex class.  If the key comparator of the tuning parameter is not set, PairLexicalKeyComparator is set implicitly.  Other compatible key comparators are PairLexicalCaseKeyComparator, PairDecimalKeyComparator, PairHexadecimalKeyComparator, PairRealNumberKeyComparator, PairSignedBigEndianKeyComparator, and PairFloatBigEndianKeyComparator.  Other options can be specified as with DBM::Open.
     """
     pass  # native code
 

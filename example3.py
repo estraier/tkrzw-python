@@ -105,6 +105,36 @@ while True:
 # Closes the database.
 dbm.Close().OrDie()
 
+# Opens a new database with the big-endian signed integers comparator.
+open_params = {
+    "truncate": True,
+    "key_comparator": "SignedBigEndian",
+}
+status = dbm.Open("casket.tkt", True, **open_params).OrDie()
+
+# Sets records with the key being a big-endian binary of a signed integer.
+# e.g: "\x00\x00\x00\x00\x00\x00\x00\x31" -> "hop"
+dbm.Set(tkrzw.Utility.SerializeInt(-1), "hop").OrDie()
+dbm.Set(tkrzw.Utility.SerializeInt(-256), "step").OrDie()
+dbm.Set(tkrzw.Utility.SerializeInt(-32), "jump").OrDie()
+
+# Gets records with the key being a big-endian binary of a signed integer.
+print(dbm.GetStr(tkrzw.Utility.SerializeInt(-1)))
+print(dbm.GetStr(tkrzw.Utility.SerializeInt(-256)))
+print(dbm.GetStr(tkrzw.Utility.SerializeInt(-32)))
+
+# Lists up all records, restoring keys into signed integers.
+iter = dbm.MakeIterator()
+iter.First()
+while True:
+    record = iter.Get()
+    if not record: break
+    print("{:.3f}: {}".format(tkrzw.Utility.DeserializeInt(record[0]), record[1].decode()))
+    iter.Next()
+
+# Closes the database.
+dbm.Close().OrDie()
+
 # Opens a new database with the big-endian floating-point numbers comparator.
 open_params = {
     "truncate": True,
